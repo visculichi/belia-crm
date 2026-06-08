@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BELIA CRM - Control de Stock & Ventas de Cuero</title>
+    
+    <!-- Hojas de Estilos -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Iconos FontAwesome para Estilo Premium -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Barra de Navegación Lateral (Sidebar) -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <img src="LOGO.jpeg" alt="BELIA" class="sidebar-logo-img" onerror="this.src='https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=100&auto=format&fit=crop'">
+                <div class="brand-text">
+                    <span class="brand-title">BELIA</span>
+                    <span class="brand-subtitle">CRM & STOCK</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <div class="menu-category" id="menu-category-principal">Principal</div>
+                <a class="menu-item active" data-page="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a class="menu-item" data-page="inventory">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>Catálogo & Stock</span>
+                </a>
+                <a class="menu-item" data-page="bulk-upload">
+                    <i class="fas fa-file-csv"></i>
+                    <span>Carga Masiva</span>
+                </a>
+                
+                <div class="menu-category" id="menu-category-ventas">Ventas & CRM</div>
+                <a class="menu-item" data-page="sales">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Punto de Venta (POS)</span>
+                </a>
+                <a class="menu-item" data-page="shifts">
+                    <i class="fas fa-vault"></i>
+                    <span>Cierres de Caja</span>
+                </a>
+                <a class="menu-item" data-page="crm">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes CRM</span>
+                </a>
+                <a class="menu-item" data-page="photos">
+                    <i class="fas fa-images"></i>
+                    <span>Base de Fotos</span>
+                </a>
+                
+                <div class="menu-category" id="menu-category-gestion">Gestión</div>
+                <a class="menu-item" data-page="labels">
+                    <i class="fas fa-tags"></i>
+                    <span>Etiquetado & SKU</span>
+                </a>
+                <a class="menu-item" data-page="calculator">
+                    <i class="fas fa-calculator"></i>
+                    <span>Calculadora de Precios</span>
+                </a>
+                
+                <div class="menu-category" id="menu-category-admin">Administración</div>
+                <a class="menu-item" data-page="settings">
+                    <i class="fas fa-sliders"></i>
+                    <span>Configuración</span>
+                </a>
+
+                <div class="menu-category" id="menu-category-session">Sesión</div>
+                <a class="menu-item" id="btn-logout" href="#" style="border-top: 1px solid var(--color-border); margin-top: 10px; padding-top: 14px;">
+                    <i class="fas fa-right-from-bracket" style="color: var(--color-danger);"></i>
+                    <span style="color: var(--color-danger); font-weight: 600;">Cerrar Sesión</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="connection-badge demo" id="db-connection-badge">
+                    <span class="connection-dot"></span>
+                    <span class="connection-text">Modo Demo</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Botón Toggle de Menú en Móvil -->
+        <button id="mobile-menu-toggle" style="position:fixed; top:20px; right:20px; z-index:1002; background-color:var(--color-bg-card); border:1px solid var(--color-border-gold); padding:10px; border-radius:var(--radius-sm); color:var(--color-text-primary); cursor:pointer; display:none;">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Área Principal de Contenido -->
+        <main class="main-content">
+            
+            <!-- 1. VISTA: DASHBOARD -->
+            <section class="page-view active" id="dashboard-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Bienvenido a BELIA</h1>
+                        <p class="page-subtitle" id="dashboard-filter-label">Panel de rendimiento y control del negocio de cueros.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button id="btn-toggle-dash-filters" title="Mostrar / Ocultar filtros" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:7px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); display:flex; align-items:center; gap:6px;">
+                            <i class="fas fa-sliders" style="font-size:0.85rem;"></i> Filtros <i class="fas fa-chevron-up" id="dash-filter-chevron" style="font-size:0.7rem; transition:transform 0.3s;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Barra de Filtros del Dashboard (colapsable) -->
+                <div id="dashboard-filter-bar" style="overflow:hidden; transition:max-height 0.4s ease, opacity 0.3s ease, margin-bottom 0.3s ease; max-height:400px; opacity:1; margin-bottom:24px;">
+                    <div style="background:rgba(212,175,55,0.03); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+
+                        <!-- Filtros Rápidos -->
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="dash-filter-btn active" data-filter="today" id="df-today" style="background:rgba(212,175,55,0.08); border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">Hoy</button>
+                            <button class="dash-filter-btn" data-filter="yesterday" id="df-yesterday" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">Ayer</button>
+                            <button class="dash-filter-btn" data-filter="15days" id="df-15days" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">15 Días</button>
+                            <button class="dash-filter-btn" data-filter="30days" id="df-30days" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">30 Días</button>
+                            <button class="dash-filter-btn" data-filter="month" id="df-month" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">Este Mes</button>
+                            <button class="dash-filter-btn" data-filter="all" id="df-all" style="background:none; border:1px solid var(--color-border); color:var(--color-text-muted); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans); letter-spacing:0.5px;">Todo</button>
+                        </div>
+
+                        <!-- Separador -->
+                        <div style="width:1px; height:28px; background:var(--color-border); margin:0 4px;"></div>
+
+                        <!-- Filtro por Turno -->
+                        <select id="df-shift-select" class="form-input" style="padding:6px 12px; font-size:0.8rem; height:auto; min-width:160px; border-radius:20px; border-color:var(--color-border); background:var(--color-bg-card); color:var(--color-text-secondary);">
+                            <option value="">Por Turno...</option>
+                            <!-- Cargado dinámicamente -->
+                        </select>
+
+                        <!-- Separador -->
+                        <div style="width:1px; height:28px; background:var(--color-border); margin:0 4px;"></div>
+
+                        <!-- Rango de Fechas -->
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:0.75rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Desde</span>
+                            <input type="date" id="df-date-from" class="form-input" style="padding:5px 10px; font-size:0.8rem; height:auto; border-radius:20px; border-color:var(--color-border); background:var(--color-bg-card); color:var(--color-text-secondary); min-width:140px;">
+                            <span style="font-size:0.75rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Hasta</span>
+                            <input type="date" id="df-date-to" class="form-input" style="padding:5px 10px; font-size:0.8rem; height:auto; border-radius:20px; border-color:var(--color-border); background:var(--color-bg-card); color:var(--color-text-secondary); min-width:140px;">
+                            <button id="df-range-apply" style="background:none; border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.2s; font-family:var(--font-sans);">Aplicar</button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Rejilla de Métricas KPIs -->
+                <div class="metrics-grid">
+                    <div class="card metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Ingresos Totales</span>
+                            <span class="metric-value" id="kpi-sales-revenue">$0</span>
+                            <span class="metric-change positive"><i class="fas fa-arrow-up"></i> Activo</span>
+                        </div>
+                        <div class="metric-icon-box">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="card metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Ventas Registradas</span>
+                            <span class="metric-value" id="kpi-sales-count">0</span>
+                            <span class="metric-change positive"><i class="fas fa-shopping-cart"></i> Transacciones</span>
+                        </div>
+                        <div class="metric-icon-box">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                    </div>
+
+                    <div class="card metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Prendas Vendidas</span>
+                            <span class="metric-value" id="kpi-items-sold">0</span>
+                            <span class="metric-change positive"><i class="fas fa-tshirt"></i> Unidades</span>
+                        </div>
+                        <div class="metric-icon-box">
+                            <i class="fas fa-shirt"></i>
+                        </div>
+                    </div>
+
+                    <div class="card metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Valor del Inventario</span>
+                            <span class="metric-value" id="kpi-stock-value">$0</span>
+                            <span class="metric-change positive"><i class="fas fa-warehouse"></i> En Stock</span>
+                        </div>
+                        <div class="metric-icon-box">
+                            <i class="fas fa-vault"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diseño del Layout del Dashboard (Gráficos y Alertas) -->
+                <div class="dashboard-layout">
+                    
+                    <!-- Tarjeta del Gráfico -->
+                    <div class="card" style="align-self: start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                            <h3 style="font-family:var(--font-display); font-size:1.3rem;">Ventas de la Semana</h3>
+                            <span style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:1px;">Actualizado</span>
+                        </div>
+                        <div id="dashboard-chart-container" style="min-height: 240px;">
+                            <!-- Inyectado por Javascript -->
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Actividad / Alertas -->
+                    <div style="display:flex; flex-direction:column; gap:24px;">
+                        
+                        <!-- Stock Bajo -->
+                        <div class="card" style="flex:1;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 style="font-family:var(--font-display); font-size:1.2rem; color:var(--color-gold-light);">
+                                    <i class="fas fa-triangle-exclamation"></i> Stock Bajo o Crítico
+                                </h3>
+                                <span id="stock-alerts-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                            </div>
+                            <div id="stock-alerts-list" style="max-height:280px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
+                                <!-- Inyectado por Javascript -->
+                            </div>
+                        </div>
+
+                        <!-- Ventas Recientes -->
+                        <div class="card" style="flex:1.2;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 style="font-family:var(--font-display); font-size:1.2rem;">Ventas Recientes</h3>
+                                <span id="recent-sales-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                            </div>
+                            <div class="recent-sales-list" id="recent-sales-list" style="max-height:320px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
+                                <!-- Inyectado por Javascript -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. VISTA: CATÁLOGO DE INVENTARIO -->
+            <section class="page-view" id="inventory-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Catálogo de Prendas</h1>
+                        <p class="page-subtitle">Administra los modelos de cuero, talles, colores y cantidad de stock.</p>
+                    </div>
+                    <div class="page-actions" style="display:flex; gap:12px;">
+                        <button class="btn btn-secondary admin-only-block" id="inventory-btn-new-base">
+                            <i class="fas fa-file-invoice"></i> Registrar Ficha Base
+                        </button>
+                        <button class="btn btn-primary admin-only-block" id="inventory-btn-load-stock">
+                            <i class="fas fa-plus"></i> Cargar Stock / Variante
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pestañas de Navegación de Inventario -->
+                <div class="catalog-tabs" style="display:flex; gap:24px; margin-bottom:24px; border-bottom:1px solid rgba(212, 175, 55, 0.15); padding-bottom:4px;">
+                    <button class="catalog-tab-btn active" id="tab-active-stock" style="background:none; border:none; color:var(--color-gold-light); font-family:var(--font-display); font-size:1.05rem; font-weight:700; cursor:pointer; padding:8px 16px; border-bottom:3px solid var(--color-gold); transition:all 0.3s ease; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-boxes-stacked"></i> Stock Activo (Catálogo)
+                    </button>
+                    <button class="catalog-tab-btn" id="tab-master-products" style="background:none; border:none; color:var(--color-text-secondary); font-family:var(--font-display); font-size:1.05rem; font-weight:700; cursor:pointer; padding:8px 16px; border-bottom:3px solid transparent; transition:all 0.3s ease; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-database"></i> Base de Datos (Fichas)
+                    </button>
+                </div>
+
+                <!-- Panel 1: Stock Activo -->
+                <div id="panel-active-stock" class="tab-panel">
+                    <!-- Barra de Búsqueda y Filtros -->
+                    <div class="catalog-filter-bar" style="margin-bottom:24px;">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="inventory-search" class="form-input" placeholder="Buscar por modelo, cuero o detalle...">
+                        </div>
+                        <select id="inventory-filter-category" class="form-input filter-select">
+                            <option value="all">Todas las Categorías</option>
+                            <!-- Cargados dinámicamente -->
+                        </select>
+                    </div>
+
+                    <!-- Cuadrícula de Productos -->
+                    <div class="product-grid" id="inventory-product-grid">
+                        <!-- Inyectado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Panel 2: Base de Datos de Fichas de Productos -->
+                <div id="panel-master-products" class="tab-panel" style="display:none;">
+                    <div class="catalog-filter-bar" style="margin-bottom:24px;">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="master-search" class="form-input" placeholder="Buscar por nombre, código de proveedor, marca...">
+                        </div>
+                        <select id="master-filter-category" class="form-input filter-select">
+                            <option value="all">Todas las Categorías</option>
+                            <!-- Cargados dinámicamente -->
+                        </select>
+                    </div>
+
+                    <div class="card" style="padding:20px;">
+                        <div class="table-container">
+                            <table class="table-premium">
+                                <thead>
+                                    <tr>
+                                        <th style="width:120px; text-align:center;">Código</th>
+                                        <th>Marca / Proveedor</th>
+                                        <th>Modelo de Prenda</th>
+                                        <th>Categoría</th>
+                                        <th style="text-align:right; width:120px;">Costo Base</th>
+                                        <th style="text-align:right; width:120px;">Precio Venta</th>
+                                        <th class="admin-only-cell" style="width:200px; text-align:center;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-master-table-body">
+                                    <!-- Inyectado dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. VISTA: CARGA MASIVA DE INVENTARIO -->
+            <section class="page-view" id="bulk-upload-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Carga Masiva de Stock</h1>
+                        <p class="page-subtitle">Sube lotes enteros de productos mediante archivos CSV o arrastra directamente tus remitos PDF de proveedores.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary" id="btn-download-template">
+                            <i class="fas fa-download"></i> Descargar Plantilla CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Área de Subida de Archivos -->
+                <div class="card">
+                    <div class="upload-area" id="bulk-drag-area">
+                        <i class="fas fa-cloud-arrow-up upload-icon"></i>
+                        <h3 style="font-family:var(--font-display); font-size:1.5rem;">Arrastra tu remito o factura aquí (CSV o PDF)</h3>
+                        <p style="color:var(--color-text-muted); font-size:0.9rem;">o haz clic para explorar en tu computadora</p>
+                        <span style="font-size:0.75rem; color:var(--color-gold-light); font-weight:600; text-transform:uppercase;">Admite archivos .csv y remitos .pdf de proveedores</span>
+                        <input type="file" id="bulk-file-input" accept=".csv,.pdf" style="display:none;">
+                    </div>
+                </div>
+
+                <!-- Panel de Previsualización y Validación -->
+                <div class="card preview-table-wrapper" id="bulk-preview-container" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <div>
+                            <h3 style="font-family:var(--font-display); font-size:1.3rem;">Previsualización Interactiva de Datos</h3>
+                            <p style="font-size:0.8rem; color:var(--color-text-muted); margin-top:2px;">Revisa las advertencias en rojo. Puedes editar los valores directamente en la tabla antes de guardarlos.</p>
+                        </div>
+                        <div style="display:flex; gap:12px;">
+                            <button class="btn btn-secondary" id="btn-cancel-bulk-import">Descartar</button>
+                            <button class="btn btn-primary" id="btn-confirm-bulk-import" style="display:none;">Confirmar e Importar al Stock</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table-premium" id="bulk-preview-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Fila</th>
+                                    <th>Nombre de Prenda *</th>
+                                    <th>Categoría *</th>
+                                    <th style="width: 80px; text-align:center;">Talle *</th>
+                                    <th style="width: 100px;">Color *</th>
+                                    <th style="width: 100px;">Piel *</th>
+                                    <th style="width: 90px; text-align:center;">Stock *</th>
+                                    <th style="width: 110px;">Costo ($) *</th>
+                                    <th style="width: 110px;">Precio ($) *</th>
+                                    <th style="width: 60px; text-align:center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulk-preview-body">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. VISTA: PUNTO DE VENTA (POS) -->
+            <section class="page-view" id="sales-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Punto de Venta (POS)</h1>
+                        <p class="page-subtitle">Genera ventas rápidas de prendas de cuero y emite comprobantes digitales.</p>
+                    </div>
+                </div>
+
+                <!-- Panel de Turno / Control de Caja (Premium Gold Glassmorphism) -->
+                <div id="pos-cash-shift-panel" style="margin-bottom: 20px;">
+                    <!-- Se cargará dinámicamente según el estado del turno -->
+                </div>
+
+                <div class="pos-layout">
+                    
+                    <!-- Catálogo e Items del POS (Izquierda) -->
+                    <div style="display:flex; flex-direction:column; gap:20px;">
+                        <div class="catalog-filter-bar" style="padding:12px 16px;">
+                            <div class="search-wrapper" style="min-width:180px;">
+                                <i class="fas fa-search" style="font-size:0.9rem;"></i>
+                                <input type="text" id="pos-search-input" class="form-input" placeholder="Buscar o Escanear Código de Barras (SKU)..." style="padding:8px 12px 8px 36px; font-size:0.85rem;">
+                            </div>
+                            <select id="pos-filter-category" class="form-input filter-select" style="padding:8px 12px; font-size:0.85rem;">
+                                <option value="all">Todo</option>
+                                <!-- Categorías cargadas dinámicamente -->
+                            </select>
+                        </div>
+
+                        <div class="pos-catalog-grid" id="pos-catalog-grid">
+                            <!-- Inyectado por Javascript -->
+                        </div>
+                    </div>
+
+                    <!-- Carrito de Compras (Derecha) -->
+                    <div class="pos-cart">
+                        <div class="pos-cart-header">
+                            <h3 class="pos-cart-title"><i class="fas fa-shopping-bag" style="color:var(--color-gold-light); margin-right:8px;"></i> Bolsa de Compra</h3>
+                            <span class="badge badge-stock-in" id="pos-cart-count" style="font-size:0.75rem;">BELIA</span>
+                        </div>
+
+                        <div class="pos-cart-items" id="pos-cart-items-list">
+                            <!-- Cargado por Javascript -->
+                        </div>
+
+                        <!-- CRM Rápido y Pago -->
+                        <div class="pos-cart-totals">
+                            <!-- Selección de Cliente -->
+                            <div class="form-group" style="margin-bottom:12px; position:relative;">
+                                <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+                                    <span>Cliente del CRM</span>
+                                    <button class="btn btn-success" id="pos-btn-new-customer" style="padding:2px 8px; font-size:0.65rem;"><i class="fas fa-plus"></i> Nuevo</button>
+                                </label>
+                                
+                                <div class="pos-customer-search-wrapper" style="position:relative; width:100%;">
+                                    <input type="text" id="pos-customer-search-input" class="form-input" placeholder="Buscar cliente por nombre..." style="padding:8px 12px; font-size:0.85rem; width:100%; cursor:pointer; padding-right: 30px;" autocomplete="off" value="Consumidor Final">
+                                    <i class="fas fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:0.8rem; color:var(--color-text-muted); pointer-events:none;"></i>
+                                    
+                                    <!-- Menú Desplegable de Coincidencias -->
+                                    <div id="pos-customer-search-results" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:1005; background:var(--color-bg-card); border:1px solid rgba(212,175,55,0.3); border-radius:var(--radius-sm); max-height:200px; overflow-y:auto; margin-top:4px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+                                        <!-- Coincidencias inyectadas dinámicamente -->
+                                    </div>
+                                </div>
+
+                                <!-- Elemento select original oculto para retrocompatibilidad -->
+                                <select id="pos-select-customer" style="display:none;">
+                                    <option value="">Consumidor Final</option>
+                                </select>
+                            </div>
+
+                            <!-- Box de Notas / Info del Cliente Seleccionado en POS -->
+                            <div id="pos-customer-info-box" style="display:none; margin-top:-6px; margin-bottom:12px; padding:10px; background:rgba(212, 175, 55, 0.04); border:1px dashed rgba(212, 175, 55, 0.3); border-radius:var(--radius-sm);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <span id="pos-customer-info-name" style="font-weight:700; color:var(--color-gold-light); font-size:0.8rem;"></span>
+                                        <span id="pos-customer-info-wa"></span>
+                                    </div>
+                                    <div style="display:flex; gap:6px;">
+                                        <button type="button" class="btn btn-secondary admin-only-block" id="pos-btn-edit-customer" style="padding:2px 6px; font-size:0.65rem; border-color:rgba(212,175,55,0.3); color:var(--color-gold-light);" title="Editar Cliente"><i class="fas fa-edit"></i></button>
+                                        <button type="button" class="btn btn-danger admin-only-block" id="pos-btn-delete-customer" style="padding:2px 6px; font-size:0.65rem;" title="Eliminar Cliente"><i class="fas fa-trash-alt"></i></button>
+                                    </div>
+                                </div>
+                                <div id="pos-customer-info-notes-container" style="max-height:80px; overflow-y:auto; font-size:0.75rem; line-height:1.3; color:var(--color-text-secondary); background:rgba(0,0,0,0.25); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">
+                                    <i class="fas fa-sticky-note" style="color:var(--color-gold-light); margin-right:4px;"></i>
+                                    <span id="pos-customer-info-notes"></span>
+                                </div>
+                            </div>
+
+
+                            <!-- Forma de Pago -->
+                            <div class="form-group" style="margin-bottom:12px;">
+                                <label class="form-label" style="font-size:0.75rem;">Método de Pago</label>
+                                <select id="pos-payment-method" class="form-input" style="padding:8px 12px; font-size:0.85rem; cursor:pointer;">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                                    <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                    <option value="Transferencia">Transferencia Bancaria</option>
+                                    <option value="Dividido">Pago Dividido</option>
+                                </select>
+                            </div>
+
+                            <!-- Pago Dividido Box -->
+                            <div id="pos-split-payment-box" class="form-group" style="margin-bottom:12px; display:none; background:rgba(212,175,55,0.03); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--color-border); display:flex; flex-direction:column; gap:10px;">
+                                <!-- Medio 1 -->
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                    <select id="pos-split-method-1" class="form-input" style="width:110px; padding:6px; font-size:0.8rem; cursor:pointer; background:var(--color-bg-darker); border-color:var(--color-border);">
+                                        <option value="Efectivo" selected>Efectivo</option>
+                                        <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                        <option value="Transferencia">Transferencia</option>
+                                    </select>
+                                    <input type="text" id="pos-split-amount-1" class="form-input" placeholder="$0,00" style="width:110px; padding:6px; font-size:0.85rem; text-align:right; border-color:var(--color-border); color:var(--color-text-primary); background:var(--color-bg-darker);">
+                                </div>
+                                <!-- Medio 2 -->
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                    <select id="pos-split-method-2" class="form-input" style="width:110px; padding:6px; font-size:0.8rem; cursor:pointer; background:var(--color-bg-darker); border-color:var(--color-border);">
+                                        <option value="Tarjeta de Débito" selected>Tarjeta de Débito</option>
+                                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                        <option value="Transferencia">Transferencia</option>
+                                        <option value="Efectivo">Efectivo</option>
+                                    </select>
+                                    <input type="text" id="pos-split-amount-2" class="form-input" placeholder="$0,00" style="width:110px; padding:6px; font-size:0.85rem; text-align:right; border-color:var(--color-border); color:var(--color-text-primary); background:var(--color-bg-darker);">
+                                </div>
+                            </div>
+
+                            <!-- Descuento Rápido (10%, 15%, 20%) -->
+                            <div class="form-group" style="margin-bottom:12px;">
+                                <label class="form-label" style="font-size:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Descuento Aplicado</span>
+                                    <span id="pos-discount-badge" class="badge badge-stock-low" style="font-size:0.65rem; display:none;">-0%</span>
+                                </label>
+                                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                                    <button type="button" class="btn btn-secondary pos-discount-btn active" data-pct="0" style="padding:6px 0; font-size:0.8rem; font-weight:700;">0%</button>
+                                    <button type="button" class="btn btn-secondary pos-discount-btn" data-pct="10" style="padding:6px 0; font-size:0.8rem; font-weight:700;">10%</button>
+                                    <button type="button" class="btn btn-secondary pos-discount-btn" data-pct="15" style="padding:6px 0; font-size:0.8rem; font-weight:700;">15%</button>
+                                    <button type="button" class="btn btn-secondary pos-discount-btn" data-pct="20" style="padding:6px 0; font-size:0.8rem; font-weight:700;">20%</button>
+                                </div>
+                            </div>
+
+                            <!-- Monto Recibido y Vuelto (Efectivo) - Diseñado para ser IMPACTANTE y GRANDE -->
+                            <div id="pos-cash-change-box" class="form-group" style="margin-bottom:15px; display:none; background:rgba(212,175,55,0.08); padding:16px; border-radius:var(--radius-md); border:1.5px solid var(--color-border-gold); box-shadow: 0 0 15px rgba(212,175,55,0.1);">
+                                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                                    <span style="font-size:0.85rem; font-weight:700; color:var(--color-gold-light); text-transform:uppercase; letter-spacing:0.5px;">Monto Recibido (Efectivo):</span>
+                                    <input type="text" id="pos-cash-received" class="form-input" placeholder="$0,00" style="width:100%; padding:10px 14px; font-size:1.6rem; font-weight:900; text-align:right; border-color:var(--color-border-gold); background:#000000; color:#FFFFFF; border-radius:var(--radius-sm); letter-spacing:1px; box-shadow: inset 0 0 8px rgba(212,175,55,0.2);">
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:1rem; border-top:1px solid rgba(212,175,55,0.2); padding-top:10px;">
+                                    <span style="color:var(--color-text-secondary); text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Vuelto a Entregar:</span>
+                                    <span id="pos-cash-change" style="color:var(--color-success); font-size:1.5rem; font-weight:900; text-shadow: 0 0 5px rgba(212,175,55,0.3);">$0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="total-row">
+                                <span style="color:var(--color-text-muted)">Subtotal:</span>
+                                <span id="pos-cart-subtotal">$0.00</span>
+                            </div>
+                            <div class="total-row total-row-grand">
+                                <span>Total Neto:</span>
+                                <span id="pos-cart-total">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="pos-cart-actions">
+                            <button class="btn btn-primary" id="pos-btn-checkout" style="width:100%; padding:14px; font-size:0.95rem;">
+                                Completar y Cobrar Venta
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 5. VISTA: CRM CLIENTES -->
+            <section class="page-view" id="crm-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Clientes VIP (CRM)</h1>
+                        <p class="page-subtitle">Historial de consumo, notas y base de datos para fidelización.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="crm-btn-new-customer">
+                            <i class="fas fa-user-plus"></i> Agregar Cliente VIP
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table-premium">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Cliente</th>
+                                    <th>Email</th>
+                                    <th>Teléfono</th>
+                                    <th style="text-align:center; width:120px;">Frecuencia</th>
+                                    <th style="width: 150px;">Consumo Acumulado</th>
+                                    <th style="width: 150px; text-align:center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crm-customers-body">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5.1 VISTA: BASE DE FOTOS -->
+            <section class="page-view" id="photos-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Base de Fotos de Cuero</h1>
+                        <p class="page-subtitle">Gestiona tus propios enlaces de imágenes asociados a títulos y variantes de color.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="photos-btn-add">
+                            <i class="fas fa-plus"></i> Vincular Nueva Foto
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table-premium">
+                            <thead>
+                                <tr>
+                                    <th style="width: 120px; text-align:center;">Previsualización</th>
+                                    <th>Título / Modelo de Prenda</th>
+                                    <th>Variante de Color</th>
+                                    <th>Enlace de Imagen (URL)</th>
+                                    <th style="width: 150px; text-align:center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="photos-table-body">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            </section>
+
+            <!-- 5.4 VISTA: ETIQUETADO DE PRODUCTOS (SKU) -->
+            <section class="page-view" id="labels-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Etiquetado de Prendas & SKU</h1>
+                        <p class="page-subtitle">Genera e imprime etiquetas térmicas con códigos de barra y códigos QR para tus prendas y variantes.</p>
+                    </div>
+                    <div class="page-actions" style="display:flex; gap:12px; align-items:center;">
+                        <span style="font-size:0.85rem; color:var(--color-text-muted);">
+                            Seleccionado: <strong id="labels-selected-count" style="color:var(--color-gold-light)">0</strong> var.
+                        </span>
+                        <select id="labels-print-type" class="form-input" style="width:170px; height:38px; cursor:pointer; padding:6px 12px;">
+                            <option value="qr">Código QR (Compacto)</option>
+                            <option value="barcode">Código de Barras</option>
+                        </select>
+                        <button class="btn btn-primary" id="btn-print-labels" style="padding: 10px 16px;">
+                            <i class="fas fa-print"></i> Imprimir Selección
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:20px;">
+                    <div class="catalog-filter-bar" style="margin-bottom:20px;">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="labels-search" class="form-input" placeholder="Buscar por modelo, código, SKU, color o talle...">
+                        </div>
+                        <select id="labels-filter-category" class="form-input filter-select">
+                            <option value="all">Todas las Categorías</option>
+                            <!-- Cargados dinámicamente -->
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table-premium">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px; text-align:center;">
+                                        <input type="checkbox" id="labels-select-all" style="cursor:pointer; transform:scale(1.15);">
+                                    </th>
+                                    <th style="width:110px; text-align:center;">Código Base</th>
+                                    <th>Modelo / Prenda</th>
+                                    <th style="width:90px; text-align:center;">Talle</th>
+                                    <th style="width:110px;">Color</th>
+                                    <th style="width:100px;">Piel</th>
+                                    <th style="width:160px;">SKU</th>
+                                    <th style="width:90px; text-align:center;">Stock</th>
+                                    <th style="width:110px; text-align:center;">Copias</th>
+                                    <th style="width:110px; text-align:center;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="labels-table-body">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5.5 VISTA: CALCULADORA DE PRECIOS -->
+            <section class="page-view" id="calculator-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Calculadora de Financiación</h1>
+                        <p class="page-subtitle">Calcula cuotas, recargos y descuentos de prendas en tiempo real para cotizar a tus clientes.</p>
+                    </div>
+                </div>
+
+                <div class="pos-layout">
+                    
+                    <!-- Configuración y Valores de Entrada (Izquierda) -->
+                    <div style="display:flex; flex-direction:column; gap:24px;">
+                        
+                        <!-- Panel de Precio -->
+                        <div class="card" style="padding:24px;">
+                            <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:16px; color:var(--color-gold-light);"><i class="fas fa-tags"></i> Prenda & Valor Base</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Seleccionar del Catálogo (Opcional)</label>
+                                <select id="calc-select-product" class="form-input" style="cursor:pointer;">
+                                    <option value="">-- Ingresar precio manual --</option>
+                                    <!-- Inyectado por JS -->
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Valor Base de la Prenda ($ Contado/Efectivo) *</label>
+                                <div style="position:relative;">
+                                    <span style="position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--color-gold); font-weight:700;">$</span>
+                                    <input type="number" id="calc-input-price" class="form-input" value="650000" style="padding-left:36px; font-weight:700; font-size:1.1rem; color:var(--color-gold-light);" placeholder="0.00" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Tasas y Porcentajes -->
+                        <div class="card" id="calc-rates-panel" style="padding:24px; position:relative;">
+                            <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:16px;"><i class="fas fa-percent"></i> Configuración de Tasas</h3>
+                            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:16px;">Modifica los porcentajes de descuento (negativo) o recargo (positivo) según tus costos financieros.</p>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Efectivo / Contado (%)</label>
+                                    <input type="number" id="calc-pct-cash" class="form-input" value="-10" step="0.5" placeholder="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Transferencia (%)</label>
+                                    <input type="number" id="calc-pct-transfer" class="form-input" value="0" step="0.5" placeholder="0">
+                                </div>
+                            </div>
+
+                            <div class="form-row" style="margin-top:8px;">
+                                <div class="form-group">
+                                    <label class="form-label">Tarjeta (1 Pago) (%)</label>
+                                    <input type="number" id="calc-pct-card-1" class="form-input" value="10" step="0.5" placeholder="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tarjeta (3 Cuotas) (%)</label>
+                                    <input type="number" id="calc-pct-card-3" class="form-input" value="20" step="0.5" placeholder="0">
+                                </div>
+                            </div>
+
+                            <div class="form-row" style="margin-top:8px;">
+                                <div class="form-group">
+                                    <label class="form-label">Tarjeta (6 Cuotas) (%)</label>
+                                    <input type="number" id="calc-pct-card-6" class="form-input" value="35" step="0.5" placeholder="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tarjeta (9 Cuotas) (%)</label>
+                                    <input type="number" id="calc-pct-card-9" class="form-input" value="50" step="0.5" placeholder="0">
+                                </div>
+                            </div>
+
+                            <!-- Lock overlay for Setters -->
+                            <div id="calc-rates-lock-overlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; border-radius: var(--radius-md); text-align: center; padding: 20px;">
+                                <i class="fas fa-lock" style="font-size: 2rem; color: var(--color-gold); margin-bottom: 12px;"></i>
+                                <span style="font-family: var(--font-display); font-size: 1.1rem; color: var(--color-text-primary); font-weight: 600;">Tasas Bloqueadas</span>
+                                <span style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 4px;">Acceso restringido para vendedores</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Resultados de Cotización (Derecha) -->
+                    <div class="card" style="display:flex; flex-direction:column; gap:20px; border-color:var(--color-border-gold); box-shadow:var(--shadow-gold);">
+                        <div style="border-bottom:1px solid var(--color-border); padding-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="font-family:var(--font-display); font-size:1.3rem; color:var(--color-text-primary);">Cotización de Prenda</h3>
+                            <span class="badge badge-stock-in" style="font-size:0.7rem; text-transform:uppercase;">En Tiempo Real</span>
+                        </div>
+
+                        <!-- Lista de Modalidades de Pago y Precios -->
+                        <div style="display:flex; flex-direction:column; gap:16px;" id="calc-results-list">
+                            
+                            <!-- Contado -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:#000; border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-money-bill-wave" style="margin-right:8px; color:var(--color-success);"></i> Efectivo / Contado</strong>
+                                    <div id="calc-cash-badge" style="font-size:0.7rem; color:var(--color-success); margin-top:2px;">Cargando...</div>
+                                </div>
+                                <span id="calc-res-cash" style="font-size:1.3rem; font-weight:800; color:var(--color-gold-light);">0.00</span>
+                            </div>
+
+                            <!-- Transferencia -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:rgba(212,175,55,0.01); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-mobile-screen-button" style="margin-right:8px; color:var(--color-gold-light);"></i> Transferencia Bancaria</strong>
+                                    <div id="calc-transfer-badge" style="font-size:0.7rem; color:var(--color-text-muted); margin-top:2px;">Cargando...</div>
+                                </div>
+                                <span id="calc-res-transfer" style="font-size:1.3rem; font-weight:800;">0.00</span>
+                            </div>
+
+                            <!-- Tarjeta 1 Pago -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:rgba(212,175,55,0.01); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-credit-card" style="margin-right:8px;"></i> Tarjeta (1 Pago)</strong>
+                                    <div id="calc-card1-badge" style="font-size:0.7rem; color:var(--color-text-muted); margin-top:2px;">Cargando...</div>
+                                </div>
+                                <span id="calc-res-card-1" style="font-size:1.3rem; font-weight:800;">0.00</span>
+                            </div>
+
+                            <!-- Tarjeta 3 Cuotas -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:rgba(212,175,55,0.01); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-calendar-days" style="margin-right:8px;"></i> Tarjeta (3 Cuotas)</strong>
+                                    <div id="calc-res-card-3-installment" style="font-size:0.8rem; color:var(--color-gold-light); font-weight:700; margin-top:2px;">3 cuotas de $0.00</div>
+                                </div>
+                                <span id="calc-res-card-3" style="font-size:1.3rem; font-weight:800;">0.00</span>
+                            </div>
+
+                            <!-- Tarjeta 6 Cuotas -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:rgba(212,175,55,0.01); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-calendar-days" style="margin-right:8px;"></i> Tarjeta (6 Cuotas)</strong>
+                                    <div id="calc-res-card-6-installment" style="font-size:0.8rem; color:var(--color-gold-light); font-weight:700; margin-top:2px;">6 cuotas de $0.00</div>
+                                </div>
+                                <span id="calc-res-card-6" style="font-size:1.3rem; font-weight:800;">0.00</span>
+                            </div>
+
+                            <!-- Tarjeta 9 Cuotas -->
+                            <div style="padding:12px 16px; border-radius:var(--radius-md); background-color:rgba(212,175,55,0.01); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.9rem; color:var(--color-text-secondary);"><i class="fas fa-calendar-days" style="margin-right:8px;"></i> Tarjeta (9 Cuotas)</strong>
+                                    <div id="calc-res-card-9-installment" style="font-size:0.8rem; color:var(--color-gold-light); font-weight:700; margin-top:2px;">9 cuotas de $0.00</div>
+                                </div>
+                                <span id="calc-res-card-9" style="font-size:1.3rem; font-weight:800;">0.00</span>
+                            </div>
+
+                        </div>
+
+                        <!-- Acción Premium: Copiar para Enviar -->
+                        <div style="border-top:1px solid var(--color-border); padding-top:16px; margin-top:8px; display:flex; flex-direction:column; gap:12px;">
+                            <button class="btn btn-primary" id="calc-btn-copy" style="width:100%; padding:14px; font-size:0.95rem;">
+                                <i class="fas fa-copy"></i> Copiar Resumen para WhatsApp
+                            </button>
+                            <button class="btn btn-secondary" id="calc-btn-copy-shipping" style="width:100%; padding:14px; font-size:0.95rem;">
+                                <i class="fas fa-paper-plane"></i> Copiar Preguntas de Envío
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 5.6 VISTA: HISTORIAL DE CIERRES DE CAJA (CIERRES) -->
+            <section class="page-view" id="shifts-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Historial de Cierres de Caja</h1>
+                        <p class="page-subtitle">Visualiza, audita y descarga en Excel los reportes de turnos anteriores para control diario de ventas por fecha.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="btn-export-shifts-excel">
+                            <i class="fas fa-file-excel"></i> Descargar Todo en Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table-premium">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px; text-align:center;">Turno N°</th>
+                                    <th style="width: 140px;">Fecha Apertura</th>
+                                    <th style="width: 140px;">Fecha Cierre</th>
+                                    <th>Cajero</th>
+                                    <th style="text-align:right;">Ventas Efectivo</th>
+                                    <th style="text-align:right;">Ventas Online</th>
+                                    <th style="text-align:right; color:var(--color-gold-light);">Total Ventas</th>
+                                    <th style="text-align:right;">Dif. Efectivo</th>
+                                    <th style="text-align:right;">Total Caja</th>
+                                    <th style="text-align:center; width: 100px;">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shifts-table-body">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. VISTA: CONFIGURACIÓN SUPABASE -->
+            <section class="page-view" id="settings-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Configuración del Sistema</h1>
+                        <p class="page-subtitle">Sincroniza y conecta tu CRM a la nube de Supabase en tiempo real.</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-layout">
+                    
+                    <!-- Formulario de Conexión -->
+                    <div class="card" style="display:flex; flex-direction:column; gap:20px;">
+                        <h3 style="font-family:var(--font-display); font-size:1.3rem;">Credenciales de Supabase</h3>
+                        
+                        <div id="settings-connection-status">
+                            <!-- Inyectado por JS -->
+                        </div>
+
+                        <form id="settings-supabase-form" style="display:flex; flex-direction:column; gap:16px;">
+                            <div class="form-group">
+                                <label class="form-label">SUPABASE URL</label>
+                                <input type="url" id="settings-supabase-url" class="form-input" placeholder="https://xxxxxx.supabase.co">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">SUPABASE ANON KEY</label>
+                                <input type="password" id="settings-supabase-key" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                                <button type="submit" class="btn btn-primary">Conectar e Inicializar DB</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Panel de Gestión de Usuarios (Seguridad) -->
+                    <div class="card" style="display:flex; flex-direction:column; gap:20px; grid-column: span 2;">
+                        <h3 style="font-family:var(--font-display); font-size:1.3rem; color:var(--color-gold-light);">
+                            <i class="fas fa-users-gear"></i> Gestión de Usuarios & Accesos
+                        </h3>
+                        <p style="font-size:0.8rem; color:var(--color-text-muted); margin-top:-10px;">
+                            Registra y administra las claves y accesos para cada rol. Los usuarios ingresarán tipeando directamente su contraseña en el login.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;">
+                            <!-- Tabla de Usuarios (Izquierda) -->
+                            <div class="table-container" style="border: 1px solid var(--color-border); border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.2); padding: 10px;">
+                                <table class="table-premium" style="width: 100%; border: none;">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Rol</th>
+                                            <th>Clave</th>
+                                            <th style="width: 100px; text-align:center;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="settings-users-table-body">
+                                        <!-- Inyectado dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Formulario de Alta/Edición (Derecha) -->
+                            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px;">
+                                <h4 id="user-form-title" style="font-family:var(--font-display); font-size:1rem; margin-bottom:16px; color:var(--color-gold);">Nuevo Usuario</h4>
+                                
+                                <form id="settings-user-form" style="display:flex; flex-direction:column; gap:12px;">
+                                    <input type="hidden" id="user-form-id" value="">
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size: 0.75rem;">Nombre del Vendedor / Administrador *</label>
+                                        <input type="text" id="user-form-name" class="form-input" placeholder="Ej: Juan Pérez" required style="padding: 8px 12px;">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size: 0.75rem;">Contraseña de Acceso (Única) *</label>
+                                        <input type="password" id="user-form-password" class="form-input" placeholder="Ej: juan123" required style="padding: 8px 12px;">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size: 0.75rem;">Permisos / Rol *</label>
+                                        <select id="user-form-role" class="form-input" required style="padding: 8px 12px; cursor: pointer;">
+                                            <option value="setter">Setter (Vendedor / Cajero)</option>
+                                            <option value="admin">Administrador (Acceso Total)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                                        <button type="button" id="btn-user-form-cancel" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; display: none;">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.8rem;">Guardar Usuario</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generador de SQL para Supabase -->
+                    <div class="card">
+                        <h3 style="font-family:var(--font-display); font-size:1.3rem;">Motor SQL de Inicialización</h3>
+                        <p style="font-size:0.8rem; color:var(--color-text-muted); margin-top:2px; margin-bottom:12px;">Copia este código y pégalo en el editor SQL de tu panel de Supabase para crear automáticamente todas las tablas relacionales requeridas.</p>
+                        
+                        <div class="code-box-header">
+                            <span class="code-box-lang">PostgreSQL / Supabase</span>
+                            <button class="code-box-copy" id="btn-copy-sql"><i class="fas fa-copy"></i> Copiar SQL</button>
+                        </div>
+                        <pre class="code-box" id="supabase-sql-code">
+                            <!-- Inyectado por JS -->
+                        </pre>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Contenedor global de Notificaciones Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Modal Premium Deslizante / Drawer (POS Variantes) -->
+    <div class="sheet-overlay" id="sheet-overlay"></div>
+    <div class="sheet-container" id="sheet-container">
+        <!-- Rellenado dinámicamente -->
+    </div>
+
+    <!-- Modal Reutilizable Global Overlay -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Título del Modal</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Rellenado dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Mostrar e Imprimir Recibos/Tickets POS -->
+    <div class="modal-overlay" id="ticket-modal-overlay">
+        <div class="modal-container" style="max-width:440px;">
+            <div class="modal-header" style="border-bottom:none;">
+                <h3 class="modal-title" style="font-family:var(--font-display);">Recibo de Compra</h3>
+                <button class="modal-close" id="ticket-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="padding-top:0;">
+                <!-- Área de Impresión Limpia -->
+                <div id="receipt-print-area" class="receipt-printable">
+                    <!-- Inyectado dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="ticket-btn-close" onclick="document.getElementById('ticket-modal-overlay').classList.remove('active')">Cerrar</button>
+                <button class="btn btn-primary" id="btn-print-receipt"><i class="fas fa-print"></i> Imprimir Ticket</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script CDN de Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Script CDN de PDF.js para lectura de remitos en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+    <!-- Script CDN de JsBarcode y QRCode para etiquetado -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Scripts de la Aplicación -->
+    <script src="supabase-client.js"></script>
+    <script src="bulk-uploader.js"></script>
+    <script src="sales-pos.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Login Screen Overlay -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <div class="login-logo-container">
+                <img src="LOGO.jpeg" alt="BELIA" class="login-logo" onerror="this.src='https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=100&auto=format&fit=crop'">
+                <div class="login-title">BELIA</div>
+                <div class="login-subtitle">Control de Acceso</div>
+            </div>
+            <div class="login-error-msg" id="login-error-msg">Contraseña incorrecta</div>
+            
+            <form id="login-form" style="width:100%; display:flex; flex-direction:column; gap:16px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="text-align:left;">Contraseña de Acceso</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="••••••••" required style="text-align:center; font-size:1.2rem; letter-spacing:4px;">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:14px; margin-top:8px; font-weight:700;">
+                    <i class="fas fa-right-to-bracket"></i> INGRESAR
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
