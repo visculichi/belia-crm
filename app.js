@@ -2683,103 +2683,112 @@ async function confirmDeleteUser(userId, userName) {
 // INICIALIZACIÓN GLOBAL DE LA APLICACIÓN
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 0. Inicializar Control de Acceso (RBAC)
-    initAccessControl();
+    try {
+        // 0. Inicializar Control de Acceso (RBAC)
+        initAccessControl();
 
-    // 1. Inicializar Enrutador SPA
-    initRouter();
+        // 1. Inicializar Enrutador SPA
+        initRouter();
 
-    // 2. Inicializar Módulo de Carga Masiva (CSV Engine)
-    initBulkUploader(showToast, () => {
-        loadAndRefreshViews('inventory'); // Recargar catálogo tras importar en lote
-    });
-
-    // 3. Inicializar Punto de Venta (POS)
-    initSalesPOS(showToast, () => {
-        loadAndRefreshViews('dashboard'); // Recargar stock tras realizar ventas
-    }, openModal, closeModal);
-
-    // 4. Inicializar Módulo CRM
-    initCRMModule();
-
-    // 4.1 Inicializar Módulo Base de Fotos
-    initPhotosModule();
-
-    // 4.2 Inicializar Módulo de Historial de Cierres de Caja
-    initShiftsModule();
-
-    // 5. Inicializar Módulo Ajustes
-    initSettingsModule();
-
-    // 5.1 Inicializar Módulo de Etiquetado
-    initLabelsModule();
-
-    // 6. Buscador del Catálogo e Inventario
-    const invSearch = document.getElementById('inventory-search');
-    if (invSearch) invSearch.addEventListener('input', () => renderInventoryGrid());
-    const invFilter = document.getElementById('inventory-filter-category');
-    if (invFilter) invFilter.addEventListener('change', () => renderInventoryGrid());
-    
-    // Buscador y filtro de la Base de Productos
-    const mastSearch = document.getElementById('master-search');
-    if (mastSearch) mastSearch.addEventListener('input', () => renderMasterProductsTable());
-    const mastFilter = document.getElementById('master-filter-category');
-    if (mastFilter) mastFilter.addEventListener('change', () => renderMasterProductsTable());
-
-    // Botones de acción del catálogo
-    const btnNewBase = document.getElementById('inventory-btn-new-base');
-    if (btnNewBase) btnNewBase.addEventListener('click', () => openBaseProductModal());
-    const btnLoadStock = document.getElementById('inventory-btn-load-stock');
-    if (btnLoadStock) btnLoadStock.addEventListener('click', () => openLoadStockModal());
-
-    // Pestañas de inventario
-    const tabActiveStock = document.getElementById('tab-active-stock');
-    const tabMasterProducts = document.getElementById('tab-master-products');
-    const panelActiveStock = document.getElementById('panel-active-stock');
-    const panelMasterProducts = document.getElementById('panel-master-products');
-
-    if (tabActiveStock && tabMasterProducts) {
-        tabActiveStock.addEventListener('click', () => {
-            tabActiveStock.classList.add('active');
-            tabMasterProducts.classList.remove('active');
-            tabActiveStock.style.borderBottomColor = 'var(--color-gold)';
-            tabActiveStock.style.color = 'var(--color-gold-light)';
-            tabMasterProducts.style.borderBottomColor = 'transparent';
-            tabMasterProducts.style.color = 'var(--color-text-secondary)';
-            panelActiveStock.style.display = 'block';
-            panelMasterProducts.style.display = 'none';
-            renderInventoryGrid();
+        // 2. Inicializar Módulo de Carga Masiva (CSV Engine)
+        initBulkUploader(showToast, () => {
+            loadAndRefreshViews('inventory'); // Recargar catálogo tras importar en lote
         });
 
-        tabMasterProducts.addEventListener('click', () => {
-            tabMasterProducts.classList.add('active');
-            tabActiveStock.classList.remove('active');
-            tabMasterProducts.style.borderBottomColor = 'var(--color-gold)';
-            tabMasterProducts.style.color = 'var(--color-gold-light)';
-            tabActiveStock.style.borderBottomColor = 'transparent';
-            tabActiveStock.style.color = 'var(--color-text-secondary)';
-            panelActiveStock.style.display = 'none';
-            panelMasterProducts.style.display = 'block';
-            renderMasterProductsTable();
-            populateMasterCategoryFilter();
+        // 3. Inicializar Punto de Venta (POS)
+        initSalesPOS(showToast, () => {
+            loadAndRefreshViews('dashboard'); // Recargar stock tras realizar ventas
+        }, openModal, closeModal);
+
+        // 4. Inicializar Módulo CRM
+        initCRMModule();
+
+        // 4.1 Inicializar Módulo Base de Fotos
+        initPhotosModule();
+
+        // 4.2 Inicializar Módulo de Historial de Cierres de Caja
+        initShiftsModule();
+
+        // 5. Inicializar Módulo Ajustes
+        initSettingsModule();
+
+        // 5.1 Inicializar Módulo de Etiquetado
+        initLabelsModule();
+
+        // 6. Buscador del Catálogo e Inventario
+        const invSearch = document.getElementById('inventory-search');
+        if (invSearch) invSearch.addEventListener('input', () => renderInventoryGrid());
+        const invFilter = document.getElementById('inventory-filter-category');
+        if (invFilter) invFilter.addEventListener('change', () => renderInventoryGrid());
+        
+        // Buscador y filtro de la Base de Productos
+        const mastSearch = document.getElementById('master-search');
+        if (mastSearch) mastSearch.addEventListener('input', () => renderMasterProductsTable());
+        const mastFilter = document.getElementById('master-filter-category');
+        if (mastFilter) mastFilter.addEventListener('change', () => renderMasterProductsTable());
+
+        // Botones de acción del catálogo
+        const btnNewBase = document.getElementById('inventory-btn-new-base');
+        if (btnNewBase) btnNewBase.addEventListener('click', () => openBaseProductModal());
+        const btnLoadStock = document.getElementById('inventory-btn-load-stock');
+        if (btnLoadStock) btnLoadStock.addEventListener('click', () => openLoadStockModal());
+
+        // Pestañas de inventario
+        const tabActiveStock = document.getElementById('tab-active-stock');
+        const tabMasterProducts = document.getElementById('tab-master-products');
+        const panelActiveStock = document.getElementById('panel-active-stock');
+        const panelMasterProducts = document.getElementById('panel-master-products');
+
+        if (tabActiveStock && tabMasterProducts) {
+            tabActiveStock.addEventListener('click', () => {
+                tabActiveStock.classList.add('active');
+                tabMasterProducts.classList.remove('active');
+                tabActiveStock.style.borderBottomColor = 'var(--color-gold)';
+                tabActiveStock.style.color = 'var(--color-gold-light)';
+                tabMasterProducts.style.borderBottomColor = 'transparent';
+                tabMasterProducts.style.color = 'var(--color-text-secondary)';
+                if (panelActiveStock) panelActiveStock.style.display = 'block';
+                if (panelMasterProducts) panelMasterProducts.style.display = 'none';
+                renderInventoryGrid();
+            });
+
+            tabMasterProducts.addEventListener('click', () => {
+                tabMasterProducts.classList.add('active');
+                tabActiveStock.classList.remove('active');
+                tabMasterProducts.style.borderBottomColor = 'var(--color-gold)';
+                tabMasterProducts.style.color = 'var(--color-gold-light)';
+                tabActiveStock.style.borderBottomColor = 'transparent';
+                tabActiveStock.style.color = 'var(--color-text-secondary)';
+                if (panelActiveStock) panelActiveStock.style.display = 'none';
+                if (panelMasterProducts) panelMasterProducts.style.display = 'block';
+                renderMasterProductsTable();
+                populateMasterCategoryFilter();
+            });
+        }
+
+        // 7. Cierre del Sidebar en pantallas pequeñas
+        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('mobile-open');
+            });
+        }
+
+        // Si se hace clic en un ítem de menú en móvil, cerrar sidebar
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (sidebar) sidebar.classList.remove('mobile-open');
+            });
         });
+    } catch (err) {
+        console.error("Critical error in DOMContentLoaded initialization:", err);
+        setTimeout(() => {
+            if (typeof showToast === 'function') {
+                showToast('Error de Inicio', `Falla en carga: ${err.message || err}`, 'danger');
+            }
+        }, 1000);
     }
-
-    // 7. Cierre del Sidebar en pantallas pequeñas
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar');
-    if (menuToggle) {
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('mobile-open');
-        });
-    }
-
-    // Si se hace clic en un ítem de menú en móvil, cerrar sidebar
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            sidebar.classList.remove('mobile-open');
-        });
-    });
 });
 
 // ==========================================================================
