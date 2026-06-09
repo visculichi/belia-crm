@@ -94,8 +94,12 @@
                 </a>
             </nav>
             
-            <div class="sidebar-footer">
-                <div class="connection-badge demo" id="db-connection-badge">
+            <div class="sidebar-footer" style="padding: 16px; border-top: 1px solid var(--color-border); display:flex; flex-direction:column; gap:8px;">
+                <button id="btn-refresh-app" class="sidebar-refresh-btn" title="Actualizar Aplicación">
+                    <i class="fas fa-rotate"></i>
+                    <span>Actualizar Sistema</span>
+                </button>
+                <div class="connection-badge demo" id="db-connection-badge" style="margin-top:0;">
                     <span class="connection-dot"></span>
                     <span class="connection-text">Modo Demo</span>
                 </div>
@@ -1108,5 +1112,9 @@
             </form>
         </div>
     </div>
+    <!-- Botón Flotante para Venta Directa (Caja) -->
+    <button id="floating-pos-btn" class="floating-fab" title="Ir a Venta Directa (Caja)">
+        <i class="fas fa-cash-register"></i>
+    </button>
 </body>
 </html>

@@ -105,6 +105,12 @@ function initRouter() {
 // CARGA Y SINCRONIZACIÓN CENTRALIZADA
 // ==========================================================================
 async function loadAndRefreshViews(page = 'dashboard') {
+    // Controlar visibilidad del botón flotante de Caja (no mostrar si ya estamos en ventas/POS)
+    const floatingPosBtn = document.getElementById('floating-pos-btn');
+    if (floatingPosBtn) {
+        floatingPosBtn.style.display = (page === 'sales') ? 'none' : 'flex';
+    }
+
     try {
         updateConnectionBadge();
         
@@ -2763,6 +2769,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (panelMasterProducts) panelMasterProducts.style.display = 'block';
                 renderMasterProductsTable();
                 populateMasterCategoryFilter();
+            });
+        }
+
+        // 6.2 Botón flotante para Caja (POS)
+        const floatingPosBtn = document.getElementById('floating-pos-btn');
+        if (floatingPosBtn) {
+            floatingPosBtn.addEventListener('click', () => {
+                const salesItem = document.querySelector('.menu-item[data-page="sales"]');
+                if (salesItem) salesItem.click();
+            });
+        }
+
+        // 6.3 Botón de Actualizar Aplicación (Sidebar)
+        const btnRefreshApp = document.getElementById('btn-refresh-app');
+        if (btnRefreshApp) {
+            btnRefreshApp.addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast('Actualizando', 'Recargando el sistema...', 'info');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
             });
         }
 
