@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BELIA CRM - Control de Stock & Ventas de Cuero</title>
     
+    <!-- Favicon e Icono de App (PWA) -->
+    <link rel="icon" type="image/jpeg" href="LOGO.jpeg">
+    <link rel="shortcut icon" href="LOGO.jpeg">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Soporte para iPhone / iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BELIA CRM">
+    <link rel="apple-touch-icon" href="LOGO.jpeg">
+    <link rel="apple-touch-icon" sizes="192x192" href="LOGO.jpeg">
+    <link rel="apple-touch-icon" sizes="512x512" href="LOGO.jpeg">
+    
     <!-- Hojas de Estilos -->
     <link rel="stylesheet" href="styles.css">
     
@@ -1061,6 +1074,17 @@
     <script src="bulk-uploader.js"></script>
     <script src="sales-pos.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Registro de Service Worker para PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[BELIA CRM] Service Worker registrado con éxito:', reg.scope))
+                    .catch(err => console.error('[BELIA CRM] Error al registrar Service Worker:', err));
+            });
+        }
+    </script>
 
     <!-- Login Screen Overlay -->
     <div id="login-overlay">
