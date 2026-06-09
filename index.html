@@ -214,41 +214,46 @@
                 </div>
 
                 <!-- Diseño del Layout del Dashboard (Gráficos y Alertas) -->
-                <div class="dashboard-layout" style="margin-bottom: 32px;">
+                <div class="dashboard-layout">
                     
-                    <!-- Tarjeta del Gráfico -->
-                    <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column;">
+                    <!-- Tarjeta del Gráfico (Se estira para igualar a las de la derecha combinadas) -->
+                    <div class="card" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                             <h3 style="font-family:var(--font-display); font-size:1.3rem;">Ventas de la Semana</h3>
                             <span style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:1px;">Actualizado</span>
                         </div>
-                        <div id="dashboard-chart-container" style="min-height: 240px; flex: 1;">
+                        <div id="dashboard-chart-container" style="min-height: 240px; flex: 1; display: flex; align-items: center; justify-content: center;">
                             <!-- Inyectado por Javascript -->
                         </div>
                     </div>
 
-                    <!-- Tarjeta de Stock Bajo o Crítico (Alineada en altura) -->
-                    <div class="card" style="display:flex; flex-direction:column; height:100%; margin-bottom:0; min-height:0;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-shrink:0;">
-                            <h3 style="font-family:var(--font-display); font-size:1.2rem; color:var(--color-gold-light);">
-                                <i class="fas fa-triangle-exclamation"></i> Stock Bajo o Crítico
-                            </h3>
-                            <span id="stock-alerts-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                    <!-- Tarjetas de Actividad / Alertas (Lado Derecho) -->
+                    <div style="display:flex; flex-direction:column; gap:24px;">
+                        
+                        <!-- Stock Bajo -->
+                        <div class="card" style="margin-bottom:0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 style="font-family:var(--font-display); font-size:1.2rem; color:var(--color-gold-light);">
+                                    <i class="fas fa-triangle-exclamation"></i> Stock Bajo o Crítico
+                                </h3>
+                                <span id="stock-alerts-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                            </div>
+                            <div id="stock-alerts-list" style="max-height:280px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
+                                <!-- Inyectado por Javascript -->
+                            </div>
                         </div>
-                        <div id="stock-alerts-list" style="flex:1; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent; min-height: 240px;">
-                            <!-- Inyectado por Javascript -->
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Ventas Recientes (Ancho Completo al final) -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                        <h3 style="font-family:var(--font-display); font-size:1.2rem;">Ventas Recientes</h3>
-                        <span id="recent-sales-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
-                    </div>
-                    <div class="recent-sales-list" id="recent-sales-list" style="max-height:300px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
-                        <!-- Inyectado por Javascript -->
+                        <!-- Ventas Recientes -->
+                        <div class="card" style="margin-bottom:0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 style="font-family:var(--font-display); font-size:1.2rem;">Ventas Recientes</h3>
+                                <span id="recent-sales-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                            </div>
+                            <div class="recent-sales-list" id="recent-sales-list" style="max-height:300px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
+                                <!-- Inyectado por Javascript -->
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </section>
