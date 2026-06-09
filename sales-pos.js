@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    BELIA CRM - LÓGICA DE PUNTO DE VENTA (SALES & POS MODULE)
    ========================================================================== */
 
@@ -1346,9 +1346,9 @@ function showReceiptModal(sale, cartItems, clientName, paymentMethod, subtotal, 
 
     ticketPrintArea.innerHTML = `
         <div class="receipt-header">
-            <div class="receipt-brand">BELIA</div>
-            <div style="font-size:0.75rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px;">Prendas de Cuero Finas</div>
-            <div style="font-size:0.7rem; color:#555; margin-top:4px;">CABA, Argentina</div>
+            <div class="receipt-brand">Belia Leather</div>
+            <div style="font-size:0.75rem; letter-spacing:1px; margin-top:2px;">Indumentaria de cuero genuino</div>
+            <div style="font-size:0.7rem; color:#555; margin-top:4px;">La Plata, Buenos Aires</div>
         </div>
         <div class="receipt-divider"></div>
         <div style="font-size: 0.75rem; line-height: 1.6;">
@@ -1427,7 +1427,7 @@ function showReceiptModal(sale, cartItems, clientName, paymentMethod, subtotal, 
         <div class="receipt-divider"></div>
         <div style="text-align:center; font-size:0.7rem; margin-top:20px; font-style:italic;">
             Gracias por elegir la elegancia de BELIA.<br>
-            www.beliacuero.com.ar
+            belialeather.com.ar
         </div>
     `;
 
@@ -1804,12 +1804,163 @@ function showShiftReportModal(shift, data) {
                 <div style="font-size:0.78rem; color:var(--color-text-muted); margin-top:5px;">Esperado ${fmt(totalEsperado)} / Contado ${fmt(totalContado)}</div>
                 ${totalCajaNota}
             </div>
-            <button class="btn btn-primary" style="padding:10px 30px; font-weight:700; width:100%;" id="report-close-btn">
-                Finalizar y Continuar
-            </button>
+            <div style="display:flex; gap:12px; margin-top:16px;">
+                <button class="btn btn-secondary" style="padding:10px 20px; font-weight:700; flex:1; border-color:var(--color-border-gold); color:var(--color-gold-light);" id="report-print-btn">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+                <button class="btn btn-primary" style="padding:10px 20px; font-weight:700; flex:1;" id="report-close-btn">
+                    Finalizar y Continuar
+                </button>
+            </div>
         </div>
     `;
 
     openModalOverlayCallback("Analisis de Cierre de Caja", reportHtml);
     document.getElementById('report-close-btn').addEventListener('click', closeModalOverlayCallback);
+    document.getElementById('report-print-btn').addEventListener('click', () => {
+        printShiftReport(shift, data);
+    });
+}
+
+// Función global para imprimir o guardar como PDF la planilla de cierre de caja
+function printShiftReport(shift, data) {
+    const { ventasEfectivo, ventasOnline, totalVentas, expectedCash, shiftNumber } = data;
+    const numLabel  = shiftNumber ? `Turno N°${shiftNumber}` : 'Turno';
+    const actCash   = parseFloat(shift.actual_cash) || 0;
+    const actCard   = parseFloat(shift.actual_card) || 0;
+    const cashDiff  = actCash - expectedCash;
+    const cardDiff  = actCard - ventasOnline;
+    const totalContado  = actCash + actCard;
+    const totalEsperado = expectedCash + ventasOnline;
+    const totalDiff = totalContado - totalEsperado;
+
+    const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2 });
+    
+    // Crear ventana emergente de impresión
+    const printWindow = window.open('', '', 'height=700,width=600');
+    if (!printWindow) {
+        alert("Por favor habilite las ventanas emergentes (popups) para poder imprimir el reporte.");
+        return;
+    }
+    
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Planilla de Cierre - BELIA</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Courier New", monospace; color: #000; padding: 30px; text-align: left; background-color: #fff; line-height: 1.4; }');
+    printWindow.document.write('.report-header { text-align: center; margin-bottom: 20px; }');
+    printWindow.document.write('.report-brand { font-size: 1.6rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }');
+    printWindow.document.write('.report-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }');
+    printWindow.document.write('.report-subtitle { font-size: 0.9rem; color: #555; }');
+    printWindow.document.write('.divider { border-top: 1px solid #000; margin: 12px 0; }');
+    printWindow.document.write('.divider-dashed { border-top: 1px dashed #000; margin: 12px 0; }');
+    printWindow.document.write('.info-table { width: 100%; font-size: 0.9rem; border-collapse: collapse; margin-bottom: 10px; }');
+    printWindow.document.write('.info-table td { padding: 4px 0; }');
+    printWindow.document.write('.info-table td.label { font-weight: bold; width: 45%; }');
+    printWindow.document.write('.section-title { font-size: 1rem; font-weight: bold; margin-top: 15px; margin-bottom: 8px; border-bottom: 1px solid #000; padding-bottom: 4px; text-transform: uppercase; }');
+    printWindow.document.write('.data-table { width: 100%; font-size: 0.9rem; border-collapse: collapse; }');
+    printWindow.document.write('.data-table td { padding: 4px 0; }');
+    printWindow.document.write('.data-table td.right { text-align: right; }');
+    printWindow.document.write('.data-table tr.total-row { font-weight: bold; font-size: 0.95rem; }');
+    printWindow.document.write('.data-table tr.total-row td { border-top: 1px dashed #000; padding-top: 6px; }');
+    printWindow.document.write('.notes-box { font-size: 0.85rem; font-style: italic; white-space: pre-wrap; background: #f9f9f9; padding: 8px; border: 1px solid #ddd; margin-top: 6px; }');
+    printWindow.document.write('@media print { body { padding: 10px; } }');
+    printWindow.document.write('</style></head><body>');
+
+    printWindow.document.write(`
+        <div class="report-header">
+            <div class="report-brand">Belia Leather</div>
+            <div class="report-title">Planilla de Cierre de Caja</div>
+            <div class="report-subtitle">${numLabel} &mdash; ${shift.status === 'open' ? 'Activo' : 'Cerrado'}</div>
+        </div>
+        <div class="divider"></div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Responsable:</td>
+                <td>${shift.opened_by || 'Administrador'}</td>
+            </tr>
+            <tr>
+                <td class="label">Fecha Apertura:</td>
+                <td>${new Date(shift.opened_at).toLocaleString('es-AR')}</td>
+            </tr>
+            <tr>
+                <td class="label">Fecha Cierre:</td>
+                <td>${shift.closed_at ? new Date(shift.closed_at).toLocaleString('es-AR') : 'Sin cerrar (Activo)'}</td>
+            </tr>
+        </table>
+        
+        <div class="section-title">Resumen de Ventas</div>
+        <table class="data-table">
+            <tr>
+                <td>Ventas Efectivo:</td>
+                <td class="right" style="font-weight:bold; color:#000;">${fmt(ventasEfectivo)}</td>
+            </tr>
+            <tr>
+                <td>Ventas Online (Déb/Créd/Transf):</td>
+                <td class="right" style="font-weight:bold; color:#000;">${fmt(ventasOnline)}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Total Ventas del Turno:</td>
+                <td class="right">${fmt(totalVentas)}</td>
+            </tr>
+        </table>
+        
+        <div class="section-title">Auditoría de Valores (Arqueo)</div>
+        <table class="data-table">
+            <tr>
+                <td>Efectivo Inicial Apertura:</td>
+                <td class="right">${fmt(parseFloat(shift.opening_cash))}</td>
+            </tr>
+            <tr>
+                <td>+ Ventas Efectivo:</td>
+                <td class="right">${fmt(ventasEfectivo)}</td>
+            </tr>
+            <tr class="total-row" style="font-size:0.9rem; font-weight:normal;">
+                <td style="border-top:1px solid #ccc; padding-top:4px;">Efectivo Esperado en Caja:</td>
+                <td class="right" style="border-top:1px solid #ccc; padding-top:4px; font-weight:bold;">${fmt(expectedCash)}</td>
+            </tr>
+            <tr>
+                <td>Efectivo Contado Físicamente:</td>
+                <td class="right" style="font-weight:bold;">${fmt(actCash)}</td>
+            </tr>
+            <tr style="font-weight:bold; color:${cashDiff < 0 ? '#d9534f' : '#000'}">
+                <td>Diferencia Efectivo:</td>
+                <td class="right">${cashDiff > 0 ? '+' : ''}${fmt(cashDiff)}</td>
+            </tr>
+            
+            <tr style="height: 10px;"><td colspan="2"></td></tr>
+            
+            <tr>
+                <td>Online Esperado:</td>
+                <td class="right">${fmt(ventasOnline)}</td>
+            </tr>
+            <tr>
+                <td>Online Declarado / Contado:</td>
+                <td class="right" style="font-weight:bold;">${fmt(actCard)}</td>
+            </tr>
+            <tr style="font-weight:bold; color:${cardDiff < 0 ? '#d9534f' : '#000'}">
+                <td>Diferencia Online:</td>
+                <td class="right">${cardDiff > 0 ? '+' : ''}${fmt(cardDiff)}</td>
+            </tr>
+            
+            <tr style="height: 10px;"><td colspan="2"></td></tr>
+            
+            <tr class="total-row" style="font-size:1rem; border-top:1px solid #000; border-bottom:1px solid #000;">
+                <td style="padding: 6px 0;">DIFERENCIA TOTAL COMBINADA:</td>
+                <td class="right" style="padding: 6px 0; color:${totalDiff < 0 ? '#d9534f' : '#000'}">${totalDiff > 0 ? '+' : ''}${fmt(totalDiff)}</td>
+            </tr>
+        </table>
+        
+        ${shift.notes ? `
+            <div class="section-title">Observaciones de Cierre</div>
+            <div class="notes-box">${shift.notes}</div>
+        ` : ''}
+        
+        <div class="divider-dashed" style="margin-top:40px;"></div>
+        <div style="text-align:center; font-size:0.75rem; color:#666; font-style:italic;">
+            Planilla de control interno de caja - Belia Leather
+        </div>
+    `);
+
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
 }
