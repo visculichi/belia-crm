@@ -1487,11 +1487,24 @@ body {
    ========================================================================== */
 @media (max-width: 768px) {
     .sidebar {
-        left: -280px;
+        left: -310px;
+        transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        max-height: 100vh;
+        -webkit-overflow-scrolling: touch;
     }
     
     .sidebar.mobile-open {
         left: 0;
+    }
+    
+    .sidebar-menu {
+        overflow-y: visible;
+        flex: none;
+    }
+
+    #mobile-menu-toggle {
+        display: block !important;
     }
     
     .main-content {
@@ -1748,6 +1761,26 @@ body {
 }
 .sidebar-refresh-btn:hover i {
     transform: rotate(360deg);
+}
+
+/* Backdrop for mobile sidebar */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.sidebar-backdrop.active {
+    opacity: 1;
+    visibility: visible;
 }
 
 

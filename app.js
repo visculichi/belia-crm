@@ -2796,16 +2796,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // 7. Cierre del Sidebar en pantallas pequeñas
         const menuToggle = document.getElementById('mobile-menu-toggle');
         const sidebar = document.querySelector('.sidebar');
-        if (menuToggle && sidebar) {
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('mobile-open');
-            });
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        function toggleMobileSidebar() {
+            if (sidebar) {
+                const isOpen = sidebar.classList.toggle('mobile-open');
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.toggle('active', isOpen);
+                }
+            }
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', toggleMobileSidebar);
+        }
+
+        if (sidebarBackdrop) {
+            sidebarBackdrop.addEventListener('click', toggleMobileSidebar);
         }
 
         // Si se hace clic en un ítem de menú en móvil, cerrar sidebar
         document.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('click', () => {
-                if (sidebar) sidebar.classList.remove('mobile-open');
+                if (sidebar && sidebar.classList.contains('mobile-open')) {
+                    toggleMobileSidebar();
+                }
             });
         });
     } catch (err) {
