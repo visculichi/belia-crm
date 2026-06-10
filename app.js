@@ -60,6 +60,27 @@ function closeModal() {
     modalBody.innerHTML = '';
 }
 
+function openConfirmModal(title, message, onConfirm) {
+    const confirmHtml = `
+        <div style="display:flex; flex-direction:column; gap:16px; text-align:center; padding: 10px 0;">
+            <p style="font-size:0.95rem; line-height:1.5; color:var(--color-text-secondary);">${message}</p>
+            <div style="display:flex; justify-content:center; gap:16px; margin-top:8px;">
+                <button type="button" class="btn btn-secondary" id="confirm-modal-cancel" style="min-width: 100px;">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirm-modal-ok" style="min-width: 100px; background-color: var(--color-danger); border-color: var(--color-danger);">Confirmar</button>
+            </div>
+        </div>
+    `;
+    
+    openModal(title, confirmHtml);
+    
+    document.getElementById('confirm-modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('confirm-modal-ok').addEventListener('click', () => {
+        closeModal();
+        onConfirm();
+    });
+}
+
+
 if (modalClose) {
     modalClose.addEventListener('click', closeModal);
 }
@@ -4020,13 +4041,30 @@ function renderAppointmentsForSelectedDay() {
         const btnSale = card.querySelector('.btn-sale-appt');
         
         if (btnCancel) {
-            btnCancel.addEventListener('click', async () => {
-                if (confirm(`¿Estás seguro de cancelar la cita de ${appt.client_name}?`)) {
-                    await deleteAppointment(appt.id);
-                    appointments = await getAppointments();
-                    initAppointmentsModule();
-                    showToast('Cita Cancelada', `Se eliminó la cita de ${appt.client_name}`, 'warning');
-                }
+            btnCancel.addEventListener('click', () => {
+                openConfirmModal(
+                    "Cancelar Cita Showroom", 
+                    `¿Estás seguro de que deseas cancelar la cita de ${appt.client_name}? Esta acción no se puede deshacer.`,
+                    async () => {
+                        try {
+                            await deleteAppointment(appt.id);
+                            
+                            // Enviar notificación de cancelación por Telegram si está configurado
+                            const tgToken = localStorage.getItem('BELIA_TELEGRAM_BOT_TOKEN');
+                            const tgChatId = localStorage.getItem('BELIA_TELEGRAM_CHAT_ID');
+                            if (tgToken && tgToken.trim() !== '' && tgChatId && tgChatId.trim() !== '') {
+                                sendTelegramCancellationNotification(appt);
+                            }
+                            
+                            appointments = await getAppointments();
+                            initAppointmentsModule();
+                            showToast('Cita Cancelada', `Se eliminó la cita de ${appt.client_name}`, 'warning');
+                        } catch (err) {
+                            console.error(err);
+                            showToast('Error', 'No se pudo cancelar la cita.', 'danger');
+                        }
+                    }
+                );
             });
         }
         

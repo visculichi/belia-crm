@@ -3403,6 +3403,74 @@ async function sendTelegramNotification(appt) {
     }
 }
 
+async function sendTelegramCancellationNotification(appt) {
+    const token = localStorage.getItem('BELIA_TELEGRAM_BOT_TOKEN');
+    const chatId = localStorage.getItem('BELIA_TELEGRAM_CHAT_ID');
+    
+    if (!token || !chatId) return false;
+    
+    // Buscar detalles de stock
+    let details = "Ninguna (Solo Interés General)";
+    if (appt.inventory_id) {
+        let invList = [];
+        if (typeof inventory !== 'undefined') {
+            invList = inventory;
+        } else {
+            try {
+                invList = JSON.parse(localStorage.getItem('BELIA_DEMO_INVENTORY')) || [];
+            } catch(e) {}
+        }
+        
+        const inv = invList.find(i => i.id === appt.inventory_id);
+        if (inv) {
+            let prodList = [];
+            if (typeof products !== 'undefined') {
+                prodList = products;
+            } else {
+                try {
+                    prodList = JSON.parse(localStorage.getItem('BELIA_DEMO_PRODUCTS')) || [];
+                } catch(e) {}
+            }
+            const prod = prodList.find(p => p.id === inv.product_id);
+            if (prod) {
+                details = `${prod.name} (Talle: ${inv.size} - Color: ${inv.color} - Piel: ${inv.piel || 'Vaca'})`;
+            }
+        }
+    }
+
+    const dateFormatted = new Date(appt.appointment_date).toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const message = `❌ *Cita Showroom CANCELADA* ❌\n\n` +
+                    `👤 *Cliente:* ${appt.client_name}\n` +
+                    `📞 *Celular:* ${appt.phone || 'Sin registrar'}\n` +
+                    `📅 *Fecha y Hora Original:* ${dateFormatted}\n` +
+                    `🧥 *Reserva de Prenda:* ${details}\n` +
+                    `📝 *Notas:* ${appt.notes || 'Sin observaciones'}\n\n` +
+                    `⚠️ _La cita ha sido eliminada de la agenda._`;
+
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'Markdown'
+            })
+        });
+        return res.ok;
+    } catch (err) {
+        console.error("Error al enviar notificación de cancelación de Telegram:", err);
+        return false;
+    }
+}
+
+
 
 // SQL DE CONFIGURACIÓN DE SUPABASE
 const SUPABASE_SQL_SETUP = `-- 1. Tabla de Productos (Catálogo)
