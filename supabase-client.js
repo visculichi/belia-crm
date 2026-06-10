@@ -121,22 +121,27 @@ const LEATHER_PHOTO_DATABASE = {
     }
 };
 
+function normalizeString(str) {
+    return (str || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+        .replace(/[^a-z0-9]/g, "")       // Eliminar espacios, comillas y caracteres especiales
+        .trim();
+}
+
 function resolveProductImage(product, color) {
     if (!product) return 'LOGO.jpeg';
     
-    // 1. Primero intentar buscar coincidencia en las fotos personalizadas del usuario por nombre de producto y color
+    // 1. Primero intentar buscar coincidencia exacta en las fotos personalizadas del usuario por nombre de producto y color normalizados
     if (cachedCustomPhotos && cachedCustomPhotos.length > 0 && color) {
-        const nameLower = (product.name || "").toLowerCase().trim();
-        const colorLower = (color || "").toLowerCase().trim();
+        const nameNorm = normalizeString(product.name);
+        const colorNorm = normalizeString(color);
         
         const match = cachedCustomPhotos.find(p => {
-            const pTitleLower = p.title.toLowerCase().trim();
-            const pColorLower = p.color.toLowerCase().trim();
-            
-            // Si el nombre coincide exactamente o es coincidencia parcial, y el color coincide
-            const titleMatches = nameLower === pTitleLower || nameLower.includes(pTitleLower) || pTitleLower.includes(nameLower);
-            const colorMatches = colorLower === pColorLower || colorLower.includes(pColorLower) || pColorLower.includes(colorLower);
-            return titleMatches && colorMatches;
+            const pTitleNorm = normalizeString(p.title);
+            const pColorNorm = normalizeString(p.color);
+            return nameNorm === pTitleNorm && colorNorm === pColorNorm;
         });
 
         if (match) {
@@ -145,9 +150,9 @@ function resolveProductImage(product, color) {
     }
 
     // 2. Si no hay foto específica por variante de color en biblioteca, usar la del producto base
+    // Permitimos imágenes reales de Unsplash si vienen en la base de datos
     const hasCustomImage = product.image_url && 
-                           !product.image_url.includes('placeholder') && 
-                           !product.image_url.includes('unsplash.com') && 
+                           !product.image_url.toLowerCase().includes('placeholder') && 
                            product.image_url.trim() !== '';
     if (hasCustomImage) {
         return product.image_url;
@@ -158,19 +163,15 @@ function resolveProductImage(product, color) {
 }
 
 function getProductImage(productName, category, color) {
-    const nameLower = (productName || "").toLowerCase().trim();
-    const colorLower = (color || "").toLowerCase().trim();
-
-    // 0. Primero buscar coincidencia en las fotos personalizadas del usuario
+    // 0. Primero buscar coincidencia exacta en las fotos personalizadas del usuario
     if (cachedCustomPhotos && cachedCustomPhotos.length > 0) {
+        const nameNorm = normalizeString(productName);
+        const colorNorm = normalizeString(color);
+
         const match = cachedCustomPhotos.find(p => {
-            const pTitleLower = p.title.toLowerCase().trim();
-            const pColorLower = p.color.toLowerCase().trim();
-            
-            // Si el nombre coincide exactamente o es coincidencia parcial, y el color coincide
-            const titleMatches = nameLower === pTitleLower || nameLower.includes(pTitleLower) || pTitleLower.includes(nameLower);
-            const colorMatches = colorLower === pColorLower || colorLower.includes(pColorLower) || pColorLower.includes(colorLower);
-            return titleMatches && colorMatches;
+            const pTitleNorm = normalizeString(p.title);
+            const pColorNorm = normalizeString(p.color);
+            return nameNorm === pTitleNorm && colorNorm === pColorNorm;
         });
 
         if (match) {
@@ -184,9 +185,16 @@ function getProductImage(productName, category, color) {
 
 // Configuración y variables de estado del cliente
 let supabaseClient = null;
+
+const defaultUrl = 'https://wzxuwdvpgjdflrmprwar.supabase.co';
+const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eHV3ZHZwZ2pkZmxybXByd2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzMwMDIsImV4cCI6MjA5NTc0OTAwMn0.vwGg_pfCcKueXp_lWletW4UHQsN1fEYFy5-bEbaVnN8';
+
+const storedUrl = localStorage.getItem('BELIA_SUPABASE_URL');
+const storedKey = localStorage.getItem('BELIA_SUPABASE_KEY');
+
 let currentConfig = {
-    url: localStorage.getItem('BELIA_SUPABASE_URL') || 'https://wzxuwdvpgjdflrmprwar.supabase.co',
-    key: localStorage.getItem('BELIA_SUPABASE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eHV3ZHZwZ2pkZmxybXByd2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzMwMDIsImV4cCI6MjA5NTc0OTAwMn0.vwGg_pfCcKueXp_lWletW4UHQsN1fEYFy5-bEbaVnN8'
+    url: (storedUrl && storedUrl !== 'null' && storedUrl !== 'undefined' && storedUrl.trim() !== '') ? storedUrl.trim() : defaultUrl,
+    key: (storedKey && storedKey !== 'null' && storedKey !== 'undefined' && storedKey.trim() !== '') ? storedKey.trim() : defaultKey
 };
 
 
