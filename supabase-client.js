@@ -3285,7 +3285,7 @@ async function deleteAppointment(id) {
 }
 
 async function sendFormSubmitEmail(appt, email) {
-    if (!email) return false;
+    if (!email) return { success: false, message: 'Falta el correo de destino.' };
     
     // Buscar detalles de stock
     let details = "Solo interés general / Sin prenda reservada";
@@ -3308,32 +3308,60 @@ async function sendFormSubmitEmail(appt, email) {
         hour: '2-digit', minute: '2-digit'
     });
 
-    const payload = {
-        _subject: "Nueva Cita Agendada en Showroom - BELIA CRM",
-        "Nombre del Cliente": appt.client_name,
-        "Celular": appt.phone || "No provisto",
-        "Fecha y Hora": dateFormatted,
-        "Prenda Reservada / Interés": details,
-        "Observaciones": appt.notes || "Ninguna",
-        "_honey": ""
-    };
-
     try {
-        const res = await fetch(`https://formsubmit.co/ajax/${email}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        // Crear un nombre único para el iframe
+        const iframeName = `formsubmit_iframe_${Date.now()}`;
+        
+        // Crear iframe oculto en el DOM
+        const iframe = document.createElement('iframe');
+        iframe.name = iframeName;
+        iframe.id = iframeName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        
+        // Crear formulario dinámico
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `https://formsubmit.co/${email}`;
+        form.target = iframeName;
+        
+        // Definir los campos que se enviarán
+        const fields = {
+            _subject: "Nueva Cita Agendada en Showroom - BELIA CRM",
+            "Nombre del Cliente": appt.client_name,
+            "Celular": appt.phone || "No provisto",
+            "Fecha y Hora": dateFormatted,
+            "Prenda Reservada / Interés": details,
+            "Observaciones": appt.notes || "Ninguna",
+            _honey: "",
+            _captcha: "false" // Desactivar recaptcha para evitar que quede atascado en el iframe
+        };
+        
+        // Adjuntar campos al formulario
+        for (const [key, val] of Object.entries(fields)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = val;
+            form.appendChild(input);
+        }
+        
+        // Enviar
+        document.body.appendChild(form);
+        form.submit();
+        
+        // Limpiar elementos del DOM después de 5 segundos
+        setTimeout(() => {
+            if (document.body.contains(form)) document.body.removeChild(form);
+            if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 5000);
+        
         return {
-            success: data.success === 'true' || data.success === true,
-            message: data.message || ''
+            success: true,
+            message: 'Enviado con éxito (Iframe).'
         };
     } catch (err) {
-        console.error("Error al enviar FormSubmit:", err);
+        console.error("Error al enviar FormSubmit por Iframe:", err);
         return {
             success: false,
             message: err.message || err.toString()
