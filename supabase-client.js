@@ -130,57 +130,62 @@ function normalizeString(str) {
         .trim();
 }
 
-function resolveProductImage(product, color) {
-    if (!product) return 'LOGO.jpeg';
+function resolveProductImagesList(product, color) {
+    const list = [];
+    if (!product) return ['LOGO.jpeg'];
     
-    // 1. Primero intentar buscar coincidencia exacta en las fotos personalizadas del usuario por nombre de producto y color normalizados
+    const nameNorm = normalizeString(product.name);
+    
+    // 1. Primero intentar buscar todas las coincidencias exactas por color en las fotos personalizadas
     if (cachedCustomPhotos && cachedCustomPhotos.length > 0 && color) {
-        const nameNorm = normalizeString(product.name);
         const colorNorm = normalizeString(color);
-        
-        const match = cachedCustomPhotos.find(p => {
+        const matches = cachedCustomPhotos.filter(p => {
             const pTitleNorm = normalizeString(p.title);
             const pColorNorm = normalizeString(p.color);
             return nameNorm === pTitleNorm && colorNorm === pColorNorm;
         });
-
-        if (match) {
-            return match.image_url;
+        if (matches.length > 0) {
+            matches.forEach(m => list.push(m.image_url));
         }
     }
-
-    // 2. Si no hay foto específica por variante de color en biblioteca, usar la del producto base
-    // Permitimos imágenes reales de Unsplash si vienen en la base de datos
+    
+    // 2. Si no hay fotos para ese color específico, buscar fotos para CUALQUIER otro color del mismo producto (Fallback de variante)
+    if (list.length === 0 && cachedCustomPhotos && cachedCustomPhotos.length > 0) {
+        const matches = cachedCustomPhotos.filter(p => {
+            const pTitleNorm = normalizeString(p.title);
+            return nameNorm === pTitleNorm;
+        });
+        if (matches.length > 0) {
+            matches.forEach(m => list.push(m.image_url));
+        }
+    }
+    
+    // 3. Agregar la imagen del producto base si tiene y no es un placeholder genérico
     const hasCustomImage = product.image_url && 
                            !product.image_url.toLowerCase().includes('placeholder') && 
                            product.image_url.trim() !== '';
     if (hasCustomImage) {
-        return product.image_url;
+        list.push(product.image_url);
     }
+    
+    // 4. Si el listado de imágenes sigue vacío, agregar la imagen corporativa por defecto
+    if (list.length === 0) {
+        list.push('LOGO.jpeg');
+    }
+    
+    // Retornar la lista con URLs únicas
+    return [...new Set(list)];
+}
 
-    // 3. Fallback a la imagen corporativa LOGO.jpeg
-    return 'LOGO.jpeg';
+function resolveProductImage(product, color) {
+    const list = resolveProductImagesList(product, color);
+    return list[0];
 }
 
 function getProductImage(productName, category, color) {
-    // 0. Primero buscar coincidencia exacta en las fotos personalizadas del usuario
-    if (cachedCustomPhotos && cachedCustomPhotos.length > 0) {
-        const nameNorm = normalizeString(productName);
-        const colorNorm = normalizeString(color);
-
-        const match = cachedCustomPhotos.find(p => {
-            const pTitleNorm = normalizeString(p.title);
-            const pColorNorm = normalizeString(p.color);
-            return nameNorm === pTitleNorm && colorNorm === pColorNorm;
-        });
-
-        if (match) {
-            return match.image_url;
-        }
-    }
-
-    // Fallback absoluto a la imagen corporativa LOGO.jpeg
-    return 'LOGO.jpeg';
+    const fakeProduct = { name: productName };
+    const list = resolveProductImagesList(fakeProduct, color);
+    return list[0];
 }
 
 // Configuración y variables de estado del cliente
@@ -1951,6 +1956,89 @@ async function deleteCustomPhoto(photoId) {
     }
 }
 
+async function deleteCustomPhotosForProduct(title) {
+    if (!title) return false;
+    const formattedTitle = title.trim();
+
+    // Borrado local
+    try {
+        const photos = localStorage.getItem('BELIA_CUSTOM_PHOTOS') ? JSON.parse(localStorage.getItem('BELIA_CUSTOM_PHOTOS')) : [];
+        const filtered = photos.filter(p => p.title.toLowerCase() !== formattedTitle.toLowerCase());
+        localStorage.setItem('BELIA_CUSTOM_PHOTOS', JSON.stringify(filtered));
+        if (isDemoMode()) {
+            cachedCustomPhotos = filtered;
+            return true;
+        }
+    } catch (e) {
+        console.error("Error deleting local custom photos backup for product:", e);
+    }
+
+    // Supabase
+    try {
+        const { error } = await supabaseClient
+            .from('photo_library')
+            .delete()
+            .eq('title', formattedTitle);
+
+        if (error) throw error;
+        await getCustomPhotos();
+        return true;
+    } catch (e) {
+        console.warn("No se pudo eliminar en Supabase (tabla ausente o conexión offline). Borrado local aplicado:", e);
+        // Sincronizar caché de fotos desde memoria local
+        const stored = localStorage.getItem('BELIA_CUSTOM_PHOTOS');
+        cachedCustomPhotos = stored ? JSON.parse(stored) : [];
+        return true;
+    }
+}
+
+async function saveNewCustomPhoto(title, color, url) {
+    if (!title || !color || !url) return null;
+    const formattedTitle = title.trim();
+    const formattedColor = color.trim();
+    const formattedUrl = url.trim();
+
+    // Guardado local
+    let localResult = null;
+    try {
+        const photos = localStorage.getItem('BELIA_CUSTOM_PHOTOS') ? JSON.parse(localStorage.getItem('BELIA_CUSTOM_PHOTOS')) : [];
+        const newPhoto = {
+            id: generateId(),
+            title: formattedTitle,
+            color: formattedColor,
+            image_url: formattedUrl,
+            created_at: new Date().toISOString()
+        };
+        photos.push(newPhoto);
+        localStorage.setItem('BELIA_CUSTOM_PHOTOS', JSON.stringify(photos));
+        if (isDemoMode()) {
+            cachedCustomPhotos = photos;
+            return newPhoto;
+        }
+        localResult = newPhoto;
+    } catch (e) {
+        console.error("Error saving local custom photo backup:", e);
+    }
+
+    // Supabase (inserción sin restricción ya que el delete se hizo antes)
+    try {
+        const { data, error } = await supabaseClient
+            .from('photo_library')
+            .insert([{ title: formattedTitle, color: formattedColor, image_url: formattedUrl }])
+            .select();
+        if (error) throw error;
+        
+        await getCustomPhotos();
+        return data[0];
+    } catch (e) {
+        console.warn("No se pudo persistir en Supabase. Usando respaldo de LocalStorage:", e);
+        // Sincronizar cache en memoria local
+        const stored = localStorage.getItem('BELIA_CUSTOM_PHOTOS');
+        cachedCustomPhotos = stored ? JSON.parse(stored) : [];
+        return localResult;
+    }
+}
+
 /* --- INVENTARIO / VARIANTES --- */
 
 async function getInventory() {
@@ -3602,9 +3690,11 @@ CREATE TABLE IF NOT EXISTS photo_library (
     title TEXT NOT NULL,
     color TEXT NOT NULL,
     image_url TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(title, color)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Eliminar restricción de unicidad para permitir múltiples fotos por variante
+ALTER TABLE photo_library DROP CONSTRAINT IF EXISTS photo_library_title_color_key;
 
 -- 5.2 Tabla de Usuarios y Accesos
 CREATE TABLE IF NOT EXISTS belia_users (

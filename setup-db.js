@@ -92,9 +92,11 @@ CREATE TABLE IF NOT EXISTS photo_library (
     title TEXT NOT NULL,
     color TEXT NOT NULL,
     image_url TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(title, color)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Eliminar restricción de unicidad para permitir múltiples fotos por variante
+ALTER TABLE photo_library DROP CONSTRAINT IF EXISTS photo_library_title_color_key;
 
 -- 5.2 Tabla de Usuarios y Accesos
 CREATE TABLE IF NOT EXISTS belia_users (

@@ -618,7 +618,10 @@ function openVariantSelectorSheet(product, productVariants) {
         </div>
         <div class="modal-body" style="display:flex; flex-direction:column; gap:20px;">
             <div style="display:flex; gap:16px;">
-                <img id="sheet-product-img" src="${escapeHtmlAttr(resolveProductImage(product, colors[0] || 'Negro'))}" style="width:120px; height:120px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--color-border);">
+                <div style="display:flex; flex-direction:column; gap:8px; width:120px;">
+                    <img id="sheet-product-img" src="${escapeHtmlAttr(resolveProductImage(product, colors[0] || 'Negro'))}" style="width:120px; height:120px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--color-border);">
+                    <div id="sheet-product-thumbnails" style="display:flex; gap:6px; overflow-x:auto; width:120px; padding-bottom:4px; scrollbar-width: none;"></div>
+                </div>
                 <div style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
                     <span class="badge badge-stock-in" style="width:fit-content">${product.category}</span>
                     <span style="font-size:1.3rem; font-weight:700; color:var(--color-gold-light);">$${product.selling_price.toLocaleString('es-AR', {minimumFractionDigits:2})}</span>
@@ -793,7 +796,41 @@ function openVariantSelectorSheet(product, productVariants) {
  
         // Cambiar dinámicamente la foto según la variante de color seleccionada con soporte multivariante
         if (sheetImg && activeColor) {
-            sheetImg.src = resolveProductImage(product, activeColor);
+            const images = resolveProductImagesList(product, activeColor);
+            sheetImg.src = images[0] || 'LOGO.jpeg';
+            
+            // Actualizar miniaturas
+            const thumbsContainer = document.getElementById('sheet-product-thumbnails');
+            if (thumbsContainer) {
+                thumbsContainer.innerHTML = '';
+                // Mostrar miniaturas solo si hay más de una foto para esta variante
+                if (images.length > 1) {
+                    images.forEach((imgUrl, idx) => {
+                        const thumb = document.createElement('img');
+                        thumb.src = imgUrl;
+                        thumb.className = 'pos-sheet-thumbnail';
+                        // Estilo premium para las miniaturas
+                        thumb.style = `width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid ${idx === 0 ? 'var(--color-gold)' : 'var(--color-border)'}; cursor: pointer; transition: all 0.2s ease;`;
+                        if (idx === 0) {
+                            thumb.style.boxShadow = '0 0 4px var(--color-gold)';
+                        }
+                        
+                        thumb.addEventListener('click', () => {
+                            sheetImg.src = imgUrl;
+                            thumbsContainer.querySelectorAll('img').forEach(t => {
+                                if (t === thumb) {
+                                    t.style.borderColor = 'var(--color-gold)';
+                                    t.style.boxShadow = '0 0 4px var(--color-gold)';
+                                } else {
+                                    t.style.borderColor = 'var(--color-border)';
+                                    t.style.boxShadow = 'none';
+                                }
+                            });
+                        });
+                        thumbsContainer.appendChild(thumb);
+                    });
+                }
+            }
         }
  
         if (selectedVariant) {

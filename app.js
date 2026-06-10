@@ -2139,11 +2139,22 @@ function openPhotoFormModal(photoId = null) {
     function appendProductPhotoRow(color, url = '') {
         const div = document.createElement('div');
         div.className = 'photo-link-row-product';
-        div.style = 'display:grid; grid-template-columns: 130px 1fr; align-items:center; gap:10px;';
+        div.style = 'display:grid; grid-template-columns: 140px 1fr 40px 40px; align-items:center; gap:10px;';
         div.innerHTML = `
-            <span class="badge" style="background-color:rgba(212,175,55,0.08); border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.8rem; padding:8px 12px; border-radius:var(--radius-sm); text-align:center; font-weight:700; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlAttr(color)}</span>
+            <span class="badge" style="background-color:rgba(212,175,55,0.08); border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.8rem; padding:8px 12px; border-radius:var(--radius-sm); text-align:center; font-weight:700; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(color)}">${escapeHtmlAttr(color)}</span>
             <input type="url" class="form-input row-photo-url" data-color="${escapeHtmlAttr(color)}" placeholder="Pegar URL de foto para color ${escapeHtmlAttr(color.toLowerCase())}" value="${escapeHtmlAttr(url)}">
+            <button type="button" class="btn btn-secondary btn-add-photo-row" style="padding:10px; background-color: rgba(212,175,55,0.1); border-color: var(--color-border-gold); color: var(--color-gold-light);" title="Agregar otra foto para este color"><i class="fas fa-plus"></i></button>
+            <button type="button" class="btn btn-danger btn-remove-photo-row" style="padding:10px;" title="Remover"><i class="fas fa-trash"></i></button>
         `;
+        
+        div.querySelector('.btn-add-photo-row').addEventListener('click', () => {
+            appendProductPhotoRow(color, '');
+        });
+        
+        div.querySelector('.btn-remove-photo-row').addEventListener('click', () => {
+            div.remove();
+        });
+        
         linksContainer.appendChild(div);
     }
 
@@ -2181,10 +2192,15 @@ function openPhotoFormModal(photoId = null) {
                 
                 if (allColors.length > 0) {
                     allColors.forEach(color => {
-                        // Buscar si ya tiene foto vinculada en cachedCustomPhotos
-                        const existingPhoto = cachedCustomPhotos.find(p => p.title.toLowerCase() === val.toLowerCase() && p.color.toLowerCase() === color.toLowerCase());
-                        const existingUrl = existingPhoto ? existingPhoto.image_url : '';
-                        appendProductPhotoRow(color, existingUrl);
+                        // Buscar si ya tiene fotos vinculadas en cachedCustomPhotos
+                        const existingPhotos = cachedCustomPhotos.filter(p => p.title.toLowerCase() === val.toLowerCase() && p.color.toLowerCase() === color.toLowerCase());
+                        if (existingPhotos.length > 0) {
+                            existingPhotos.forEach(rp => {
+                                appendProductPhotoRow(color, rp.image_url);
+                            });
+                        } else {
+                            appendProductPhotoRow(color, '');
+                        }
                     });
                 } else {
                     // Fallback por defecto si no hay colores en stock ni fotos
@@ -2239,15 +2255,27 @@ function openPhotoFormModal(photoId = null) {
                 
                 if (allColors.length > 0) {
                     allColors.forEach(color => {
-                        const existingPhoto = cachedCustomPhotos.find(p => p.title.toLowerCase() === photo.title.toLowerCase() && p.color.toLowerCase() === color.toLowerCase());
-                        const existingUrl = existingPhoto ? existingPhoto.image_url : '';
-                        appendProductPhotoRow(color, existingUrl);
+                        const existingPhotos = cachedCustomPhotos.filter(p => p.title.toLowerCase() === photo.title.toLowerCase() && p.color.toLowerCase() === color.toLowerCase());
+                        if (existingPhotos.length > 0) {
+                            existingPhotos.forEach(rp => {
+                                appendProductPhotoRow(color, rp.image_url);
+                            });
+                        } else {
+                            appendProductPhotoRow(color, '');
+                        }
                     });
                 } else {
                     appendProductPhotoRow(photo.color, photo.image_url);
                 }
             } else {
-                appendProductPhotoRow(photo.color, photo.image_url);
+                const relatedPhotos = cachedCustomPhotos.filter(p => p.title.toLowerCase() === photo.title.toLowerCase());
+                if (relatedPhotos.length > 0) {
+                    relatedPhotos.forEach(rp => {
+                        appendProductPhotoRow(rp.color, rp.image_url);
+                    });
+                } else {
+                    appendProductPhotoRow(photo.color, photo.image_url);
+                }
             }
         }
     }
@@ -2296,26 +2324,13 @@ function openPhotoFormModal(photoId = null) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-            // Buscar fotos existentes de este producto para ver si borramos alguna que fue limpiada
-            const existingPhotos = cachedCustomPhotos.filter(p => p.title.toLowerCase() === titleVal.toLowerCase());
-            const formColors = new Set(photoLinks.map(l => l.color.toLowerCase()));
+            // 1. Eliminar todas las fotos previas de este producto
+            await deleteCustomPhotosForProduct(titleVal);
 
+            // 2. Guardar las nuevas fotos configuradas
             for (const linkItem of photoLinks) {
-                const existing = existingPhotos.find(ep => ep.color.toLowerCase() === linkItem.color.toLowerCase());
-                
                 if (linkItem.url) {
-                    // Guardar / Actualizar
-                    await saveCustomPhoto(titleVal, linkItem.color, linkItem.url);
-                } else if (existing) {
-                    // Si el link fue borrado en la UI, eliminarlo de la base de datos
-                    await deleteCustomPhoto(existing.id);
-                }
-            }
-
-            // Desvincular fotos que existían pero que ya no figuran en absoluto en el formulario (por ejemplo si se borró una fila manual)
-            for (const ep of existingPhotos) {
-                if (!formColors.has(ep.color.toLowerCase())) {
-                    await deleteCustomPhoto(ep.id);
+                    await saveNewCustomPhoto(titleVal, linkItem.color, linkItem.url);
                 }
             }
 
