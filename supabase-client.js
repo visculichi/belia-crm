@@ -3328,10 +3328,16 @@ async function sendFormSubmitEmail(appt, email) {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        return data.success === 'true' || data.success === true;
+        return {
+            success: data.success === 'true' || data.success === true,
+            message: data.message || ''
+        };
     } catch (err) {
         console.error("Error al enviar FormSubmit:", err);
-        return false;
+        return {
+            success: false,
+            message: err.message || err.toString()
+        };
     }
 }
 

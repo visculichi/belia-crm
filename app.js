@@ -4382,11 +4382,12 @@ function openAppointmentModal() {
             const emailDest = localStorage.getItem('BELIA_NOTIFICATION_EMAIL');
             if (emailDest && emailDest.trim() !== '') {
                 showToast('Enviando Notificación', 'Se está enviando la notificación por email...', 'info');
-                sendFormSubmitEmail(savedAppt, emailDest).then(ok => {
-                    if (ok) {
+                sendFormSubmitEmail(savedAppt, emailDest).then(result => {
+                    if (result.success) {
                         showToast('Email Enviado', `Notificación enviada a ${emailDest}.`, 'success');
                     } else {
-                        showToast('Alerta de Email', 'No se pudo despachar el email. Activa el correo si es primera vez.', 'warning');
+                        const errMsg = result.message || 'Activa el correo si es primera vez.';
+                        showToast('Alerta de Email', `No se pudo despachar: ${errMsg}`, 'warning');
                     }
                 });
             }
