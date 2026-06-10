@@ -3600,6 +3600,66 @@ function executeLabelsPrintJob(jobItems) {
 let currentCalendarDate = new Date();
 let selectedCalendarDate = new Date();
 
+const ARG_HOLIDAYS_2026 = [
+    { "date": "2026-01-01", "label": "Año Nuevo", "type": "inamovible" },
+    { "date": "2026-02-16", "label": "Carnaval", "type": "inamovible" },
+    { "date": "2026-02-17", "label": "Carnaval", "type": "inamovible" },
+    { "date": "2026-03-20", "label": "Fiesta de la Ruptura del Ayuno (Ramadán)", "type": "no_laborable" },
+    { "date": "2026-03-23", "label": "Feriado con fines turísticos", "type": "turistico" },
+    { "date": "2026-03-24", "label": "Día Nacional de la Memoria por la Verdad y la Justicia", "type": "inamovible" },
+    { "date": "2026-04-02", "label": "Día del Veterano y de los Caídos en la Guerra de Malvinas / Jueves Santo", "type": "inamovible_no_laborable" },
+    { "date": "2026-04-03", "label": "Viernes Santo / Pascua Judía", "type": "inamovible_no_laborable" },
+    { "date": "2026-04-08", "label": "Pascua Judía (últimos días)", "type": "no_laborable" },
+    { "date": "2026-04-09", "label": "Pascua Judía (últimos días)", "type": "no_laborable" },
+    { "date": "2026-04-24", "label": "Día de acción por la tolerancia y el respeto entre los pueblos", "type": "no_laborable" },
+    { "date": "2026-05-01", "label": "Día del Trabajador", "type": "inamovible" },
+    { "date": "2026-05-25", "label": "Día de la Revolución de Mayo", "type": "inamovible" },
+    { "date": "2026-05-27", "label": "Fiesta del Sacrificio (Islámico)", "type": "no_laborable" },
+    { "date": "2026-06-15", "label": "Paso a la Inmortalidad del Gral. Güemes (trasladado del 17/6)", "type": "trasladable" },
+    { "date": "2026-06-17", "label": "Año Nuevo Islámico", "type": "no_laborable" },
+    { "date": "2026-06-20", "label": "Paso a la Inmortalidad del Gral. Manuel Belgrano", "type": "inamovible" },
+    { "date": "2026-07-09", "label": "Día de la Independencia", "type": "inamovible" },
+    { "date": "2026-07-10", "label": "Feriado con fines turísticos", "type": "turistico" },
+    { "date": "2026-08-17", "label": "Paso a la Inmortalidad del Gral. José de San Martín", "type": "trasladable" },
+    { "date": "2026-09-12", "label": "Año Nuevo Judío", "type": "no_laborable" },
+    { "date": "2026-09-13", "label": "Año Nuevo Judío", "type": "no_laborable" },
+    { "date": "2026-09-21", "label": "Día del Perdón (Iom Kipur)", "type": "no_laborable" },
+    { "date": "2026-10-12", "label": "Día del Respeto a la Diversidad Cultural (trasladado)", "type": "trasladable" },
+    { "date": "2026-11-23", "label": "Día de la Soberanía Nacional (trasladado del 20/11)", "type": "trasladable" },
+    { "date": "2026-12-07", "label": "Feriado con fines turísticos", "type": "turistico" },
+    { "date": "2026-12-08", "label": "Inmaculada Concepción de María", "type": "inamovible" },
+    { "date": "2026-12-25", "label": "Navidad", "type": "inamovible" }
+];
+
+function getHolidayTypeLabel(type) {
+    switch(type) {
+        case 'inamovible': return 'Feriado Inamovible';
+        case 'trasladable': return 'Feriado Trasladable';
+        case 'no_laborable': return 'Día No Laborable';
+        case 'turistico': return 'Feriado Turístico';
+        case 'inamovible_no_laborable': return 'Feriado Inamovible / Religioso';
+        default: return 'Feriado';
+    }
+}
+
+function getHolidayTypeDescription(type) {
+    switch(type) {
+        case 'inamovible': 
+            return 'Se conmemora el mismo día en que cae y no se traslada a otra fecha.';
+        case 'trasladable': 
+            return 'Feriado nacional regulado por la Ley 27.399. Si coincide con martes o miércoles se traslada al lunes anterior; si coincide con jueves o viernes, al lunes siguiente.';
+        case 'no_laborable': 
+            return 'El trabajo es optativo para el empleador. En caso de prestar servicios, se abona de manera habitual (no aplica pago doble de feriado).';
+        case 'turistico': 
+            return 'Día no laborable/feriado puente establecido por el Poder Ejecutivo nacional para fomentar el turismo interno y generar fines de semana largos.';
+        case 'inamovible_no_laborable': 
+            return 'Festividad o recordatorio de carácter inamovible o no laborable según la religión (conmemoración de Jueves Santo, Pascuas u otras festividades especiales).';
+        default: 
+            return 'Feriado nacional o día no laborable según el calendario oficial.';
+    }
+}
+
+
 function initSettingsEmailForm() {
     const emailInput = document.getElementById('settings-notification-email');
     const emailForm = document.getElementById('settings-email-form');
@@ -3723,6 +3783,13 @@ function createCalendarCell(date, dayNum, isOtherMonth) {
         cell.classList.add('selected');
     }
     
+    // Identificar feriados nacionales (Argentina 2026)
+    const holiday = ARG_HOLIDAYS_2026.find(h => h.date === dateStr);
+    if (holiday) {
+        cell.classList.add(`holiday-${holiday.type}`);
+        cell.title = `Feriado: ${holiday.label} (${getHolidayTypeLabel(holiday.type)})`;
+    }
+    
     // Verificar si hay citas agendadas en esta fecha
     const dayAppts = appointments.filter(a => {
         const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
@@ -3760,17 +3827,46 @@ function renderAppointmentsForSelectedDay() {
     container.innerHTML = '';
     
     const dateStr = selectedCalendarDate.toISOString().split('T')[0];
+    
+    // Mostrar información del feriado si aplica
+    const holiday = ARG_HOLIDAYS_2026.find(h => h.date === dateStr);
+    if (holiday) {
+        const holidayBox = document.createElement('div');
+        holidayBox.className = 'holiday-info-box';
+        
+        const typeLabel = getHolidayTypeLabel(holiday.type);
+        const typeDesc = getHolidayTypeDescription(holiday.type);
+        
+        holidayBox.innerHTML = `
+            <div class="holiday-info-title">
+                <i class="fas fa-calendar-check" style="color:var(--color-gold-light);"></i>
+                <span>🎉 Feriado: ${holiday.label}</span>
+            </div>
+            <div class="holiday-info-type holiday-type-${holiday.type}">
+                ${typeLabel}
+            </div>
+            <div class="holiday-info-desc">
+                ${typeDesc}
+            </div>
+        `;
+        container.appendChild(holidayBox);
+    }
+    
     const dayAppts = appointments.filter(a => {
         const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
         return apptDateStr === dateStr;
     }).sort((a,b) => new Date(a.appointment_date) - new Date(b.appointment_date));
     
     if (dayAppts.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center; color:var(--color-text-muted); padding:30px; font-style:italic; border: 1px dashed var(--color-border); border-radius: var(--radius-md);">
-                No hay citas agendadas para este día.
-            </div>
-        `;
+        const noApptsDiv = document.createElement('div');
+        noApptsDiv.style.textAlign = 'center';
+        noApptsDiv.style.color = 'var(--color-text-muted)';
+        noApptsDiv.style.padding = '30px';
+        noApptsDiv.style.fontStyle = 'italic';
+        noApptsDiv.style.border = '1px dashed var(--color-border)';
+        noApptsDiv.style.borderRadius = 'var(--radius-md)';
+        noApptsDiv.textContent = 'No hay citas agendadas para este día.';
+        container.appendChild(noApptsDiv);
         return;
     }
     

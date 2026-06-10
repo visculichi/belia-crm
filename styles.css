@@ -2057,5 +2057,74 @@ body {
     margin-bottom: 0;
 }
 
+/* Feriados en Calendario */
+.calendar-day.holiday-inamovible {
+    border-color: rgba(239, 68, 68, 0.4); /* Rojo suave */
+    color: #ef4444;
+}
+
+.calendar-day.holiday-trasladable {
+    border-color: rgba(245, 158, 11, 0.4); /* Ámbar suave */
+    color: #f59e0b;
+}
+
+.calendar-day.holiday-no_laborable {
+    border-color: rgba(99, 102, 241, 0.4); /* Índigo suave */
+    color: #818cf8;
+}
+
+.calendar-day.holiday-turistico {
+    border-color: rgba(45, 212, 191, 0.4); /* Turquesa suave */
+    color: #2dd4bf;
+}
+
+.calendar-day.holiday-inamovible_no_laborable {
+    border-color: rgba(236, 72, 153, 0.4); /* Rosa suave */
+    color: #ec4899;
+}
+
+/* Info Box Feriados */
+.holiday-info-box {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(0, 0, 0, 0.3));
+    border: 1px solid var(--color-border-gold);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.holiday-info-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.holiday-info-type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    width: fit-content;
+}
+
+.holiday-type-inamovible { background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.holiday-type-trasladable { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.holiday-type-no_laborable { background-color: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); }
+.holiday-type-turistico { background-color: rgba(45, 212, 191, 0.15); color: #67e8f9; border: 1px solid rgba(45, 212, 191, 0.3); }
+.holiday-type-inamovible_no_laborable { background-color: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+.holiday-info-desc {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+
 
 
