@@ -1419,6 +1419,38 @@ function initLocalStorageData() {
         localStorage.setItem('BELIA_CUSTOM_PHOTOS', JSON.stringify(DEFAULT_PHOTO_LIBRARY));
     }
 
+    if (!localStorage.getItem('BELIA_DEMO_APPOINTMENTS')) {
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1);
+        const appt1Date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 16, 30, 0).toISOString();
+        const appt2Date = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 11, 15, 0).toISOString();
+
+        const defaultAppts = [
+            {
+                id: 'appt-1',
+                client_name: 'Carolina Herrera',
+                phone: '1155554444',
+                appointment_date: appt1Date,
+                inventory_id: 'inv-1',
+                notes: 'Quiere probarse el talle S de la campera biker Venezia negra.',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 'appt-2',
+                client_name: 'Santiago de la Vega',
+                phone: '2214445555',
+                appointment_date: appt2Date,
+                inventory_id: 'inv-5',
+                notes: 'Interés en el tapado Imperia camel, talle M.',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }
+        ];
+        localStorage.setItem('BELIA_DEMO_APPOINTMENTS', JSON.stringify(defaultAppts));
+    }
+
     // Cargar caché de fotos personalizadas
     try {
         const stored = localStorage.getItem('BELIA_CUSTOM_PHOTOS');
@@ -3095,6 +3127,210 @@ function getSalePaymentBreakdown(sale) {
     return breakdown;
 }
 
+/* --- CITAS DE SHOWROOM Y RESERVAS --- */
+
+async function getAppointments() {
+    if (!isDemoMode()) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('showroom_appointments')
+                .select('*')
+                .order('appointment_date', { ascending: true });
+
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.warn("Falla al consultar showroom_appointments de Supabase. Usando LocalStorage:", err);
+        }
+    }
+
+    return JSON.parse(localStorage.getItem('BELIA_DEMO_APPOINTMENTS')) || [];
+}
+
+async function saveAppointment(appt) {
+    const isEdit = !!appt.id;
+    
+    // Validar y redondear hora a múltiplos de 5 minutos si es necesario
+    if (appt.appointment_date) {
+        const d = new Date(appt.appointment_date);
+        const mins = d.getMinutes();
+        if (mins % 5 !== 0) {
+            const roundedMins = Math.round(mins / 5) * 5;
+            d.setMinutes(roundedMins);
+            appt.appointment_date = d.toISOString();
+        }
+    }
+
+    if (!isDemoMode()) {
+        try {
+            if (isEdit) {
+                const { data, error } = await supabaseClient
+                    .from('showroom_appointments')
+                    .update({
+                        client_name: appt.client_name,
+                        phone: appt.phone,
+                        appointment_date: appt.appointment_date,
+                        inventory_id: appt.inventory_id || null,
+                        notes: appt.notes,
+                        status: appt.status || 'pending'
+                    })
+                    .eq('id', appt.id)
+                    .select();
+
+                if (error) throw error;
+                return data[0];
+            } else {
+                const { data, error } = await supabaseClient
+                    .from('showroom_appointments')
+                    .insert([{
+                        client_name: appt.client_name,
+                        phone: appt.phone,
+                        appointment_date: appt.appointment_date,
+                        inventory_id: appt.inventory_id || null,
+                        notes: appt.notes,
+                        status: 'pending'
+                    }])
+                    .select();
+
+                if (error) throw error;
+                return data[0];
+            }
+        } catch (err) {
+            console.warn("Falla al guardar cita en Supabase. Usando LocalStorage:", err);
+        }
+    }
+
+    // Modo Demo
+    const appts = JSON.parse(localStorage.getItem('BELIA_DEMO_APPOINTMENTS')) || [];
+    if (isEdit) {
+        const idx = appts.findIndex(a => a.id === appt.id);
+        if (idx !== -1) {
+            appts[idx] = {
+                ...appts[idx],
+                client_name: appt.client_name,
+                phone: appt.phone,
+                appointment_date: appt.appointment_date,
+                inventory_id: appt.inventory_id || null,
+                notes: appt.notes,
+                status: appt.status || 'pending'
+            };
+            localStorage.setItem('BELIA_DEMO_APPOINTMENTS', JSON.stringify(appts));
+            return appts[idx];
+        }
+    } else {
+        const newAppt = {
+            id: generateId(),
+            client_name: appt.client_name,
+            phone: appt.phone,
+            appointment_date: appt.appointment_date,
+            inventory_id: appt.inventory_id || null,
+            notes: appt.notes,
+            status: 'pending',
+            created_at: new Date().toISOString()
+        };
+        appts.push(newAppt);
+        localStorage.setItem('BELIA_DEMO_APPOINTMENTS', JSON.stringify(appts));
+        return newAppt;
+    }
+}
+
+async function completeAppointment(id) {
+    if (!isDemoMode()) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('showroom_appointments')
+                .update({ status: 'completed' })
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+            return data[0];
+        } catch (err) {
+            console.warn("Falla al completar cita en Supabase. Usando LocalStorage:", err);
+        }
+    }
+
+    const appts = JSON.parse(localStorage.getItem('BELIA_DEMO_APPOINTMENTS')) || [];
+    const idx = appts.findIndex(a => a.id === id);
+    if (idx !== -1) {
+        appts[idx].status = 'completed';
+        localStorage.setItem('BELIA_DEMO_APPOINTMENTS', JSON.stringify(appts));
+        return appts[idx];
+    }
+}
+
+async function deleteAppointment(id) {
+    if (!isDemoMode()) {
+        try {
+            const { error } = await supabaseClient
+                .from('showroom_appointments')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            return true;
+        } catch (err) {
+            console.warn("Falla al eliminar cita en Supabase. Usando LocalStorage:", err);
+        }
+    }
+
+    const appts = JSON.parse(localStorage.getItem('BELIA_DEMO_APPOINTMENTS')) || [];
+    const filtered = appts.filter(a => a.id !== id);
+    localStorage.setItem('BELIA_DEMO_APPOINTMENTS', JSON.stringify(filtered));
+    return true;
+}
+
+async function sendFormSubmitEmail(appt, email) {
+    if (!email) return false;
+    
+    // Buscar detalles de stock
+    let details = "Solo interés general / Sin prenda reservada";
+    if (appt.inventory_id) {
+        const storedInv = localStorage.getItem('BELIA_DEMO_INVENTORY');
+        const invList = storedInv ? JSON.parse(storedInv) : [];
+        const inv = invList.find(i => i.id === appt.inventory_id);
+        if (inv) {
+            const storedProds = localStorage.getItem('BELIA_DEMO_PRODUCTS');
+            const prodList = storedProds ? JSON.parse(storedProds) : [];
+            const prod = prodList.find(p => p.id === inv.product_id);
+            if (prod) {
+                details = `${prod.name} (${inv.color} - Talle ${inv.size} - Piel ${inv.piel || 'Vaca'})`;
+            }
+        }
+    }
+
+    const dateFormatted = new Date(appt.appointment_date).toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const payload = {
+        _subject: "Nueva Cita Agendada en Showroom - BELIA CRM",
+        "Nombre del Cliente": appt.client_name,
+        "Celular": appt.phone || "No provisto",
+        "Fecha y Hora": dateFormatted,
+        "Prenda Reservada / Interés": details,
+        "Observaciones": appt.notes || "Ninguna",
+        "_honey": ""
+    };
+
+    try {
+        const res = await fetch(`https://formsubmit.co/ajax/${email}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        return data.success === 'true' || data.success === true;
+    } catch (err) {
+        console.error("Error al enviar FormSubmit:", err);
+        return false;
+    }
+}
+
 // SQL DE CONFIGURACIÓN DE SUPABASE
 const SUPABASE_SQL_SETUP = `-- 1. Tabla de Productos (Catálogo)
 CREATE TABLE IF NOT EXISTS products (
@@ -3196,6 +3432,18 @@ CREATE TABLE IF NOT EXISTS belia_users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 5.3 Tabla de Citas de Showroom
+CREATE TABLE IF NOT EXISTS showroom_appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_name TEXT NOT NULL,
+    phone TEXT,
+    appointment_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    inventory_id UUID REFERENCES inventory(id) ON DELETE SET NULL,
+    notes TEXT,
+    status TEXT DEFAULT 'pending' NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- 6. Habilitar lecturas públicas o configurar políticas RLS básicas
 -- Para facilitar el desarrollo rápido, habilitar acceso sin credenciales restrictivas:
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -3206,6 +3454,7 @@ ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photo_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE belia_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE showroom_appointments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON products FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON inventory FOR ALL USING (true) WITH CHECK (true);
@@ -3215,4 +3464,5 @@ CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON sa
 CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON photo_library FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON cash_shifts FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON belia_users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir lectura y escritura total para usuarios anónimos" ON showroom_appointments FOR ALL USING (true) WITH CHECK (true);
 `;

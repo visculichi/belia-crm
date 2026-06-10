@@ -66,6 +66,10 @@
                     <i class="fas fa-users"></i>
                     <span>Clientes CRM</span>
                 </a>
+                <a class="menu-item" data-page="appointments">
+                    <i class="fas fa-calendar-days"></i>
+                    <span>Citas Showroom</span>
+                </a>
                 <a class="menu-item" data-page="photos">
                     <i class="fas fa-images"></i>
                     <span>Base de Fotos</span>
@@ -241,6 +245,19 @@
                                 <span id="stock-alerts-count" style="font-size:0.72rem; color:var(--color-text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"></span>
                             </div>
                             <div id="stock-alerts-list" style="max-height:280px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
+                                <!-- Inyectado por Javascript -->
+                            </div>
+                        </div>
+
+                        <!-- Citas del Showroom / Novedades -->
+                        <div class="card" style="margin-bottom:0;" id="dashboard-appointments-card">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 style="font-family:var(--font-display); font-size:1.2rem; color:var(--color-gold-light);">
+                                    <i class="fas fa-calendar-check"></i> Citas de Hoy (Showroom)
+                                </h3>
+                                <span id="dash-appointments-count" class="badge badge-stock-low" style="font-size:0.72rem;">0</span>
+                            </div>
+                            <div id="dash-appointments-list" style="max-height:280px; overflow-y:auto; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(212,175,55,0.3) transparent;">
                                 <!-- Inyectado por Javascript -->
                             </div>
                         </div>
@@ -484,7 +501,6 @@
                                     </div>
                                     <div style="display:flex; gap:6px;">
                                         <button type="button" class="btn btn-secondary admin-only-block" id="pos-btn-edit-customer" style="padding:2px 6px; font-size:0.65rem; border-color:rgba(212,175,55,0.3); color:var(--color-gold-light);" title="Editar Cliente"><i class="fas fa-edit"></i></button>
-                                        <button type="button" class="btn btn-danger admin-only-block" id="pos-btn-delete-customer" style="padding:2px 6px; font-size:0.65rem;" title="Eliminar Cliente"><i class="fas fa-trash-alt"></i></button>
                                     </div>
                                 </div>
                                 <div id="pos-customer-info-notes-container" style="max-height:80px; overflow-y:auto; font-size:0.75rem; line-height:1.3; color:var(--color-text-secondary); background:rgba(0,0,0,0.25); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">
@@ -607,6 +623,55 @@
                                 <!-- Inyectado dinámicamente -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5.0 VISTA: CITAS DE SHOWROOM -->
+            <section class="page-view" id="appointments-view">
+                <div class="page-header">
+                    <div class="page-title-area">
+                        <h1 class="page-title">Citas de Showroom</h1>
+                        <p class="page-subtitle">Agenda visitas, gestiona horarios de clientes y reserva prendas exclusivas para venta directa.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="appt-btn-new">
+                            <i class="fas fa-calendar-plus"></i> Nueva Cita Showroom
+                        </button>
+                    </div>
+                </div>
+
+                <div class="appointments-layout">
+                    <!-- Columna Izquierda: Calendario -->
+                    <div class="card appointments-calendar-card">
+                        <div class="calendar-header">
+                            <button class="calendar-nav-btn" id="appt-calendar-prev"><i class="fas fa-chevron-left"></i></button>
+                            <h2 class="calendar-title" id="appt-calendar-month-year">Cargando...</h2>
+                            <button class="calendar-nav-btn" id="appt-calendar-next"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div>Dom</div>
+                            <div>Lun</div>
+                            <div>Mar</div>
+                            <div>Mié</div>
+                            <div>Jue</div>
+                            <div>Vie</div>
+                            <div>Sáb</div>
+                        </div>
+                        <div class="calendar-days-grid" id="appt-calendar-days">
+                            <!-- Inyectado por JS -->
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Detalle de Citas del Día -->
+                    <div class="card appointments-list-card">
+                        <div class="list-header">
+                            <h3 id="appt-list-title"><i class="fas fa-clock" style="color:var(--color-gold-light)"></i> Citas del Día</h3>
+                            <span id="appt-list-date-label" style="font-size:0.8rem; color:var(--color-text-muted); font-weight:700;">Selecciona un día</span>
+                        </div>
+                        <div class="appointments-container" id="appt-day-list">
+                            <!-- Lista de citas inyectada dinámicamente -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -898,6 +963,7 @@
                                     <th style="text-align:right;">Dif. Efectivo</th>
                                     <th style="text-align:right;">Total Caja</th>
                                     <th style="text-align:center; width: 100px;">Estado</th>
+                                    <th style="text-align:center; width: 80px;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="shifts-table-body">
@@ -938,6 +1004,21 @@
                             </div>
                             <div style="display:flex; justify-content:flex-end; gap:12px;">
                                 <button type="submit" class="btn btn-primary">Conectar e Inicializar DB</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Configuración de Notificaciones (Email) -->
+                    <div class="card" style="display:flex; flex-direction:column; gap:20px;">
+                        <h3 style="font-family:var(--font-display); font-size:1.3rem;">Notificaciones de Citas</h3>
+                        <form id="settings-email-form" style="display:flex; flex-direction:column; gap:16px;">
+                            <div class="form-group">
+                                <label class="form-label">Correo para Citas Showroom (FormSubmit)</label>
+                                <input type="email" id="settings-notification-email" class="form-input" placeholder="correo@ejemplo.com">
+                                <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">Las citas agendadas enviarán una alerta por email a esta dirección a través de FormSubmit.co.</p>
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                                <button type="submit" class="btn btn-primary">Guardar Correo</button>
                             </div>
                         </form>
                     </div>

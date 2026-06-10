@@ -175,15 +175,6 @@ async function initSalesPOS(showToast, updateViews, openModalOverlay, closeModal
         });
     }
 
-    const posBtnDeleteCustomer = document.getElementById('pos-btn-delete-customer');
-    if (posBtnDeleteCustomer) {
-        posBtnDeleteCustomer.addEventListener('click', () => {
-            if (selectedCustomer) {
-                confirmDeleteCustomer(selectedCustomer.id, `${selectedCustomer.first_name} ${selectedCustomer.last_name || ''}`);
-            }
-        });
-    }
-
     // Botones de Descuento Rápido (0%, 10%, 15%, 20%)
     document.querySelectorAll('.pos-discount-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -436,6 +427,17 @@ async function initSalesPOS(showToast, updateViews, openModalOverlay, closeModal
 
             const completedSale = await saveSale(salePayload);
             showToastCallback('¡Venta Exitosa!', 'La prenda se ha registrado y el stock fue actualizado.', 'success');
+
+            // Completar cita si venía de una reserva
+            if (activeAppointmentId) {
+                try {
+                    await completeAppointment(activeAppointmentId);
+                    console.log("[POS] Cita completada y cerrada:", activeAppointmentId);
+                } catch (err) {
+                    console.warn("[POS] Falla al completar cita en base de datos:", err);
+                }
+                activeAppointmentId = null;
+            }
 
             // Limpiar Carrito y recargar
             const cartRef = [...cart];
@@ -1264,6 +1266,37 @@ function updatePOSSelectedCustomerInfo() {
 // Helper global para cambiar el cliente seleccionado del POS desde otros módulos
 function setPOSSelectedCustomer(cust) {
     selectedCustomer = cust;
+}
+
+// Variable global para rastrear si hay una cita activa que se está pagando
+let activeAppointmentId = null;
+
+// Cargar reserva en el POS desde el módulo de citas
+async function loadReservationIntoPOS(appt, customer, variant, product) {
+    activeAppointmentId = appt.id;
+    
+    // Limpiar carrito actual
+    cart = [];
+    
+    // Agregar la variante al carrito
+    if (product && variant) {
+        addToCart(product, variant, 1);
+    }
+    
+    // Seleccionar cliente
+    selectedCustomer = customer;
+    syncPOSCustomerSearchInput();
+    updatePOSSelectedCustomerInfo();
+    const select = document.getElementById('pos-select-customer');
+    if (select) {
+        populateCustomersSelect(customer ? customer.id : "");
+    }
+    
+    // Renderizar carrito y totales
+    renderPOSCart();
+    
+    // Mostrar Toast de éxito
+    showToastCallback('Cita Cargada', `Se cargó la cita de ${appt.client_name} con el producto reservado en el carrito.`, 'success');
 }
 
 // Agregar variante de prenda al carrito utilizando su SKU (Código de barras o QR)

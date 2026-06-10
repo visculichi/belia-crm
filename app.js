@@ -7,6 +7,7 @@ let products = [];
 let inventory = [];
 let customers = [];
 let sales = [];
+let appointments = [];
 
 // ==========================================================================
 // SISTEMA DE NOTIFICACIONES TOAST PREMIUM
@@ -119,6 +120,7 @@ async function loadAndRefreshViews(page = 'dashboard') {
         inventory = await getInventory();
         customers = await getCustomers();
         sales = await getSales();
+        appointments = await getAppointments();
         
         // Cargar fotos personalizadas
         if (typeof getCustomPhotos === 'function') {
@@ -128,6 +130,8 @@ async function loadAndRefreshViews(page = 'dashboard') {
         // Actualizar vistas según la página actual
         if (page === 'dashboard') {
             initDashboardFilters();
+            renderDashboardAppointmentsWidget();
+            checkDashboardAppointmentsNovelty();
         } else if (page === 'inventory') {
             const isMasterActive = document.getElementById('tab-master-products')?.classList.contains('active');
             if (isMasterActive) {
@@ -143,12 +147,15 @@ async function loadAndRefreshViews(page = 'dashboard') {
             populateCustomersSelect(selectedId);
         } else if (page === 'crm') {
             renderCRMTable();
+        } else if (page === 'appointments') {
+            initAppointmentsModule();
         } else if (page === 'photos') {
             await renderPhotosView();
         } else if (page === 'calculator') {
             initCalculatorModule();
         } else if (page === 'settings') {
             renderSettingsPanel();
+            initSettingsEmailForm();
         } else if (page === 'shifts') {
             await renderShiftsView();
         } else if (page === 'labels') {
@@ -2951,8 +2958,28 @@ async function renderShiftsView() {
                 <td style="text-align:center;">
                     <span class="badge ${statusClass}">${statusLabel}</span>
                 </td>
+                <td style="text-align:center;">
+                    <button class="btn btn-secondary btn-print-shift" data-shift-id="${s.id}" style="padding: 4px 8px; font-size: 0.75rem;" title="Imprimir Reporte">
+                        <i class="fas fa-print"></i>
+                    </button>
+                </td>
             `;
             tableBody.appendChild(tr);
+
+            const printBtn = tr.querySelector('.btn-print-shift');
+            if (printBtn) {
+                printBtn.addEventListener('click', () => {
+                    const expectedCashVal = parseFloat(s.opening_cash) + cashSales;
+                    const reportData = {
+                        ventasEfectivo: cashSales,
+                        ventasOnline: onlineSales,
+                        totalVentas: totalSales,
+                        expectedCash: expectedCashVal,
+                        shiftNumber: shiftNumberMap[s.id]
+                    };
+                    printShiftReport(s, reportData);
+                });
+            }
         });
 
     } catch (err) {
@@ -3565,4 +3592,636 @@ function executeLabelsPrintJob(jobItems) {
     printWindow.document.write('</body></html>');
     printWindow.document.close();
 }
+
+
+/* ==========================================================================
+   MÓDULO DE CITAS SHOWROOM Y RESERVAS (app.js)
+   ========================================================================== */
+let currentCalendarDate = new Date();
+let selectedCalendarDate = new Date();
+
+function initSettingsEmailForm() {
+    const emailInput = document.getElementById('settings-notification-email');
+    const emailForm = document.getElementById('settings-email-form');
+    if (emailInput) {
+        emailInput.value = localStorage.getItem('BELIA_NOTIFICATION_EMAIL') || '';
+    }
+    if (emailForm) {
+        // Remover listeners anteriores para evitar duplicados
+        const newForm = emailForm.cloneNode(true);
+        emailForm.parentNode.replaceChild(newForm, emailForm);
+        newForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = document.getElementById('settings-notification-email').value.trim();
+            localStorage.setItem('BELIA_NOTIFICATION_EMAIL', val);
+            showToast('Configuración Guardada', 'El correo de notificaciones se guardó correctamente.', 'success');
+        });
+    }
+}
+
+function initAppointmentsModule() {
+    currentCalendarDate = new Date(selectedCalendarDate);
+    
+    // Bind de botones de navegación del calendario
+    const btnPrev = document.getElementById('appt-calendar-prev');
+    const btnNext = document.getElementById('appt-calendar-next');
+    const btnNew = document.getElementById('appt-btn-new');
+    
+    if (btnPrev) {
+        const newBtnPrev = btnPrev.cloneNode(true);
+        btnPrev.parentNode.replaceChild(newBtnPrev, btnPrev);
+        newBtnPrev.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
+    }
+    if (btnNext) {
+        const newBtnNext = btnNext.cloneNode(true);
+        btnNext.parentNode.replaceChild(newBtnNext, btnNext);
+        newBtnNext.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+    if (btnNew) {
+        const newBtnNew = btnNew.cloneNode(true);
+        btnNew.parentNode.replaceChild(newBtnNew, btnNew);
+        newBtnNew.addEventListener('click', () => {
+            openAppointmentModal();
+        });
+    }
+    
+    renderCalendar();
+    renderAppointmentsForSelectedDay();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('appt-calendar-days');
+    const title = document.getElementById('appt-calendar-month-year');
+    if (!grid || !title) return;
+    
+    grid.innerHTML = '';
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Nombre del mes y año en español
+    const monthNames = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    title.textContent = `${monthNames[month]} ${year}`;
+    
+    const firstDayIndex = new Date(year, month, 1).getDay(); // Día de la semana del día 1 (0 = Dom, 1 = Lun...)
+    const numDays = new Date(year, month + 1, 0).getDate(); // Total de días del mes
+    const prevNumDays = new Date(year, month, 0).getDate(); // Días del mes anterior
+    
+    // 1. Renderizar días del mes anterior (como inactivos)
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const dayNum = prevNumDays - i;
+        const prevMonthDate = new Date(year, month - 1, dayNum);
+        const cell = createCalendarCell(prevMonthDate, dayNum, true);
+        grid.appendChild(cell);
+    }
+    
+    // 2. Renderizar días del mes actual
+    const today = new Date();
+    for (let day = 1; day <= numDays; day++) {
+        const currentDate = new Date(year, month, day);
+        const cell = createCalendarCell(currentDate, day, false);
+        grid.appendChild(cell);
+    }
+    
+    // 3. Renderizar días del mes siguiente (relleno de la grilla de 7x6 o 7x5)
+    const totalRendered = firstDayIndex + numDays;
+    const remaining = (totalRendered % 7 === 0) ? 0 : 7 - (totalRendered % 7);
+    for (let day = 1; day <= remaining; day++) {
+        const nextMonthDate = new Date(year, month + 1, day);
+        const cell = createCalendarCell(nextMonthDate, day, true);
+        grid.appendChild(cell);
+    }
+}
+
+function createCalendarCell(date, dayNum, isOtherMonth) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-day';
+    if (isOtherMonth) cell.classList.add('other-month');
+    
+    cell.textContent = dayNum;
+    
+    const dateStr = date.toISOString().split('T')[0];
+    cell.dataset.date = dateStr;
+    
+    // Resaltar hoy
+    const today = new Date();
+    if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear() && !isOtherMonth) {
+        cell.classList.add('today');
+    }
+    
+    // Resaltar día seleccionado
+    if (date.getDate() === selectedCalendarDate.getDate() && date.getMonth() === selectedCalendarDate.getMonth() && date.getFullYear() === selectedCalendarDate.getFullYear()) {
+        cell.classList.add('selected');
+    }
+    
+    // Verificar si hay citas agendadas en esta fecha
+    const dayAppts = appointments.filter(a => {
+        const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
+        return apptDateStr === dateStr;
+    });
+    
+    if (dayAppts.length > 0) {
+        const dot = document.createElement('span');
+        dot.className = 'calendar-day-dot';
+        // Si todas están completadas, pintar verde. Si no, amarillo/oro
+        const allCompleted = dayAppts.every(a => a.status === 'completed');
+        if (allCompleted) dot.classList.add('completed');
+        cell.appendChild(dot);
+    }
+    
+    // Evento de clic
+    cell.addEventListener('click', () => {
+        selectedCalendarDate = new Date(date);
+        initAppointmentsModule();
+    });
+    
+    return cell;
+}
+
+function renderAppointmentsForSelectedDay() {
+    const container = document.getElementById('appt-day-list');
+    const label = document.getElementById('appt-list-date-label');
+    if (!container || !label) return;
+    
+    const formattedSelected = selectedCalendarDate.toLocaleDateString('es-AR', {
+        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    });
+    label.textContent = formattedSelected.charAt(0).toUpperCase() + formattedSelected.slice(1);
+    
+    container.innerHTML = '';
+    
+    const dateStr = selectedCalendarDate.toISOString().split('T')[0];
+    const dayAppts = appointments.filter(a => {
+        const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
+        return apptDateStr === dateStr;
+    }).sort((a,b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+    
+    if (dayAppts.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; color:var(--color-text-muted); padding:30px; font-style:italic; border: 1px dashed var(--color-border); border-radius: var(--radius-md);">
+                No hay citas agendadas para este día.
+            </div>
+        `;
+        return;
+    }
+    
+    dayAppts.forEach(appt => {
+        const card = document.createElement('div');
+        card.className = 'appt-card';
+        
+        const timeStr = new Date(appt.appointment_date).toLocaleTimeString('es-AR', {
+            hour: '2-digit', minute: '2-digit'
+        });
+        
+        let garmentHtml = '';
+        if (appt.inventory_id) {
+            const invItem = inventory.find(i => i.id === appt.inventory_id);
+            if (invItem) {
+                const prod = products.find(p => p.id === invItem.product_id);
+                if (prod) {
+                    garmentHtml = `
+                        <div class="appt-garment-box">
+                            <i class="fas fa-shirt" style="color:var(--color-gold-light); margin-right:6px;"></i>
+                            <strong>Reserva:</strong> ${prod.name} (Talle: ${invItem.size} | Color: ${invItem.color} | Piel: ${invItem.piel || 'Vaca'})
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        const badgeClass = `appt-badge-${appt.status}`;
+        const badgeText = appt.status === 'completed' ? 'Completada' : appt.status === 'cancelled' ? 'Cancelada' : 'Pendiente';
+        
+        // Formatear celular para WhatsApp link
+        let cleanPhone = (appt.phone || '').replace(/[^0-9]/g, '');
+        if (cleanPhone.length === 10 && !cleanPhone.startsWith('54')) {
+            cleanPhone = '549' + cleanPhone;
+        } else if (cleanPhone.startsWith('54') && !cleanPhone.startsWith('549') && cleanPhone.length === 12) {
+            cleanPhone = '549' + cleanPhone.substring(2);
+        }
+        const waLink = `https://wa.me/${cleanPhone}`;
+        
+        let actionsHtml = '';
+        if (appt.status === 'pending') {
+            actionsHtml = `
+                <div class="appt-actions">
+                    <button class="btn btn-secondary btn-cancel-appt" data-id="${appt.id}" style="padding:6px 12px; font-size:0.75rem;">Cancelar</button>
+                    ${appt.inventory_id ? `
+                        <button class="btn btn-primary btn-sale-appt" data-id="${appt.id}" style="padding:6px 12px; font-size:0.75rem;">
+                            <i class="fas fa-cash-register"></i> Venta Directa
+                        </button>
+                    ` : `
+                        <button class="btn btn-success btn-complete-appt" data-id="${appt.id}" style="padding:6px 12px; font-size:0.75rem;">
+                            <i class="fas fa-check"></i> Completar
+                        </button>
+                    `}
+                </div>
+            `;
+        }
+        
+        card.innerHTML = `
+            <div class="appt-card-header">
+                <span class="appt-time"><i class="far fa-clock" style="margin-right:6px;"></i>${timeStr} hs</span>
+                <span class="appt-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            
+            <div class="appt-client-info">
+                <span class="appt-client-name">${appt.client_name}</span>
+                <div class="appt-client-phone-row">
+                    <span class="appt-client-phone">${appt.phone || 'Sin celular'}</span>
+                    ${appt.phone ? `
+                        <a href="${waLink}" target="_blank" class="btn-whatsapp-appt" title="Enviar WhatsApp Directo">
+                            <i class="fab fa-whatsapp"></i> WhatsApp
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
+            
+            ${garmentHtml}
+            
+            ${appt.notes ? `<div class="appt-notes">${appt.notes}</div>` : ''}
+            
+            ${actionsHtml}
+        `;
+        
+        // Asignar listeners
+        const btnCancel = card.querySelector('.btn-cancel-appt');
+        const btnComplete = card.querySelector('.btn-complete-appt');
+        const btnSale = card.querySelector('.btn-sale-appt');
+        
+        if (btnCancel) {
+            btnCancel.addEventListener('click', async () => {
+                if (confirm(`¿Estás seguro de cancelar la cita de ${appt.client_name}?`)) {
+                    await deleteAppointment(appt.id);
+                    appointments = await getAppointments();
+                    initAppointmentsModule();
+                    showToast('Cita Cancelada', `Se eliminó la cita de ${appt.client_name}`, 'warning');
+                }
+            });
+        }
+        
+        if (btnComplete) {
+            btnComplete.addEventListener('click', async () => {
+                await completeAppointment(appt.id);
+                appointments = await getAppointments();
+                initAppointmentsModule();
+                showToast('Cita Completada', `Se marcó la cita de ${appt.client_name} como completada.`, 'success');
+            });
+        }
+        
+        if (btnSale) {
+            btnSale.addEventListener('click', async () => {
+                try {
+                    btnSale.disabled = true;
+                    btnSale.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+                    
+                    // 1. Obtener o guardar cliente en el CRM
+                    let customer = customers.find(c => {
+                        const cleanP = (c.phone || '').replace(/[^0-9]/g, '');
+                        const cleanApptP = (appt.phone || '').replace(/[^0-9]/g, '');
+                        return (cleanP !== '' && cleanP === cleanApptP) || 
+                               (c.first_name.toLowerCase().trim() === appt.client_name.toLowerCase().trim());
+                    });
+                    
+                    if (!customer) {
+                        // Crear nuevo cliente
+                        customer = await saveCustomer({
+                            first_name: appt.client_name,
+                            phone: appt.phone || ""
+                        });
+                        customers = await getCustomers();
+                    }
+                    
+                    // 2. Obtener la variante e inventario
+                    const invItem = inventory.find(i => i.id === appt.inventory_id);
+                    if (!invItem) {
+                        showToast('Error de Venta', 'No se encontró el stock de la variante reservada.', 'danger');
+                        return;
+                    }
+                    
+                    const prod = products.find(p => p.id === invItem.product_id);
+                    if (!prod) {
+                        showToast('Error de Venta', 'No se encontró el producto base.', 'danger');
+                        return;
+                    }
+                    
+                    // 3. Cargar en el POS y redireccionar
+                    if (typeof loadReservationIntoPOS === 'function') {
+                        await loadReservationIntoPOS(appt, customer, invItem, prod);
+                        
+                        // Switch visual de SPA
+                        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+                        const salesItem = document.querySelector('.menu-item[data-page="sales"]');
+                        if (salesItem) salesItem.classList.add('active');
+                        
+                        document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+                        const salesView = document.getElementById('sales-view');
+                        if (salesView) salesView.classList.add('active');
+                        
+                        await loadAndRefreshViews('sales');
+                    } else {
+                        showToast('Error de Módulo', 'El cargador del Punto de Venta no se encuentra activo.', 'danger');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    showToast('Error', 'No se pudo realizar la transición al POS.', 'danger');
+                } finally {
+                    if (btnSale) {
+                        btnSale.disabled = false;
+                        btnSale.innerHTML = '<i class="fas fa-cash-register"></i> Venta Directa';
+                    }
+                }
+            });
+        }
+        
+        container.appendChild(card);
+    });
+}
+
+function openAppointmentModal() {
+    const activeInventory = inventory.filter(i => i.stock > 0);
+    
+    let optionsHtml = '<option value="">-- Sin Reserva / Solo Interés General --</option>';
+    activeInventory.forEach(inv => {
+        const prod = products.find(p => p.id === inv.product_id);
+        if (prod) {
+            optionsHtml += `
+                <option value="${inv.id}">
+                    ${prod.name} — ${inv.color} / Talle ${inv.size} (${inv.piel || 'Vaca'}) (Stock: ${inv.stock} u.)
+                </option>
+            `;
+        }
+    });
+    
+    // Obtener fecha por defecto en formato YYYY-MM-DD
+    const localDateStr = selectedCalendarDate.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    
+    // Obtener hora actual redondeada a los 5 minutos más cercanos
+    const now = new Date();
+    const min = now.getMinutes();
+    const roundedMin = Math.round(min / 5) * 5;
+    if (roundedMin === 60) {
+        now.setHours(now.getHours() + 1);
+        now.setMinutes(0);
+    } else {
+        now.setMinutes(roundedMin);
+    }
+    const defaultTimeStr = now.toLocaleTimeString('es-AR', {hour: '2-digit', minute: '2-digit'});
+    
+    const formHtml = `
+        <form id="appt-form" style="display:flex; flex-direction:column; gap:14px;">
+            <div class="form-group">
+                <label class="form-label">Nombre Completo del Cliente *</label>
+                <input type="text" id="appt-form-name" class="form-input" placeholder="Ej: Carolina Herrera" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Número de Celular *</label>
+                <input type="tel" id="appt-form-phone" class="form-input" placeholder="Ej: 11 5555 4444" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Prenda de Interés a Reservar</label>
+                <select id="appt-form-inventory" class="form-input" style="cursor:pointer;">
+                    ${optionsHtml}
+                </select>
+            </div>
+            
+            <div style="display:flex; gap:16px;">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Fecha *</label>
+                    <input type="date" id="appt-form-date" class="form-input" value="${localDateStr}" required>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Horario (Pasos de 5 min) *</label>
+                    <input type="time" id="appt-form-time" class="form-input" step="300" value="${defaultTimeStr}" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Notas / Observaciones</label>
+                <textarea id="appt-form-notes" class="form-input" style="height:60px; resize:none;" placeholder="Anotaciones sobre preferencias de talle, color, piel..."></textarea>
+            </div>
+            
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Agendar Cita Showroom</button>
+            </div>
+        </form>
+    `;
+    
+    openModal("Agendar Nueva Cita Showroom", formHtml);
+    
+    const timeInput = document.getElementById('appt-form-time');
+    if (timeInput) {
+        timeInput.addEventListener('blur', () => {
+            const timeVal = timeInput.value;
+            if (!timeVal) return;
+            const [hours, minutes] = timeVal.split(':').map(Number);
+            if (minutes % 5 !== 0) {
+                const rounded = Math.round(minutes / 5) * 5;
+                let finalM = rounded;
+                let finalH = hours;
+                if (finalM === 60) {
+                    finalM = 0;
+                    finalH = (hours + 1) % 24;
+                }
+                const formattedTime = `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
+                timeInput.value = formattedTime;
+                showToast('Horario Ajustado', `El horario se redondeó a ${formattedTime} para encajar en el intervalo de 5 minutos.`, 'info');
+            }
+        });
+    }
+    
+    document.getElementById('appt-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const client_name = document.getElementById('appt-form-name').value.trim();
+        const phone = document.getElementById('appt-form-phone').value.trim();
+        const inventory_id = document.getElementById('appt-form-inventory').value || null;
+        const dateVal = document.getElementById('appt-form-date').value;
+        const timeVal = document.getElementById('appt-form-time').value;
+        const notes = document.getElementById('appt-form-notes').value.trim();
+        
+        if (!client_name || !phone || !dateVal || !timeVal) {
+            showToast('Campos Incompletos', 'Completa los campos obligatorios.', 'warning');
+            return;
+        }
+        
+        // Validar y redondear hora
+        const [hours, minutes] = timeVal.split(':').map(Number);
+        const roundedMins = Math.round(minutes / 5) * 5;
+        let finalM = roundedMins;
+        let finalH = hours;
+        if (finalM === 60) {
+            finalM = 0;
+            finalH = (hours + 1) % 24;
+        }
+        const finalTimeStr = `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
+        
+        const appt_date = new Date(`${dateVal}T${finalTimeStr}:00`).toISOString();
+        
+        try {
+            const apptPayload = {
+                client_name,
+                phone,
+                inventory_id,
+                appointment_date: appt_date,
+                notes
+            };
+            
+            const savedAppt = await saveAppointment(apptPayload);
+            showToast('✓ Cita Agendada', `Cita guardada correctamente para ${client_name}.`, 'success');
+            
+            // Enviar correo si FormSubmit está configurado
+            const emailDest = localStorage.getItem('BELIA_NOTIFICATION_EMAIL');
+            if (emailDest && emailDest.trim() !== '') {
+                showToast('Enviando Notificación', 'Se está enviando la notificación por email...', 'info');
+                sendFormSubmitEmail(savedAppt, emailDest).then(ok => {
+                    if (ok) {
+                        showToast('Email Enviado', `Notificación enviada a ${emailDest}.`, 'success');
+                    } else {
+                        showToast('Alerta de Email', 'No se pudo despachar el email. Activa el correo si es primera vez.', 'warning');
+                    }
+                });
+            }
+            
+            closeModal();
+            appointments = await getAppointments();
+            initAppointmentsModule();
+        } catch(err) {
+            console.error(err);
+            showToast('Error de Registro', 'No se pudo guardar la cita.', 'danger');
+        }
+    });
+}
+
+function renderDashboardAppointmentsWidget() {
+    const list = document.getElementById('dash-appointments-list');
+    const count = document.getElementById('dash-appointments-count');
+    if (!list || !count) return;
+    
+    list.innerHTML = '';
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayAppts = appointments.filter(a => {
+        const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
+        return apptDateStr === todayStr && a.status === 'pending';
+    }).sort((a,b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+    
+    count.textContent = todayAppts.length;
+    
+    if (todayAppts.length === 0) {
+        list.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; color:var(--color-success); padding:30px; text-align:center;">
+                <i class="fas fa-check-double" style="font-size:2rem; margin-bottom:8px;"></i>
+                <span style="font-size:0.9rem; font-weight:600;">Sin Citas para Hoy</span>
+                <span style="font-size:0.75rem; color:var(--color-text-muted);">No tienes visitas programadas al showroom hoy.</span>
+            </div>
+        `;
+        return;
+    }
+    
+    todayAppts.forEach(appt => {
+        const timeStr = new Date(appt.appointment_date).toLocaleTimeString('es-AR', {
+            hour: '2-digit', minute: '2-digit'
+        });
+        
+        let interestTxt = "Interés general";
+        if (appt.inventory_id) {
+            const inv = inventory.find(i => i.id === appt.inventory_id);
+            if (inv) {
+                const prod = products.find(p => p.id === inv.product_id);
+                if (prod) interestTxt = `${prod.name} (${inv.color})`;
+            }
+        }
+        
+        const div = document.createElement('div');
+        div.className = 'appt-item-dashboard';
+        div.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:0.9rem; font-weight:700; color:var(--color-text-primary);">${appt.client_name}</span>
+                <span style="font-size:0.72rem; color:var(--color-text-muted);"><i class="fas fa-shirt" style="margin-right:4px;"></i>${interestTxt}</span>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:0.9rem; font-weight:800; color:var(--color-gold-light);">${timeStr} hs</span>
+                <div style="font-size:0.65rem; color:var(--color-text-muted); margin-top:2px;">Pendiente</div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function checkDashboardAppointmentsNovelty() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayPendingAppts = appointments.filter(a => {
+        const apptDateStr = new Date(a.appointment_date).toISOString().split('T')[0];
+        return apptDateStr === todayStr && a.status === 'pending';
+    }).sort((a,b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+    
+    if (todayPendingAppts.length > 0) {
+        // Mostrar modal de novedad si no se ha mostrado en esta sesión
+        if (!sessionStorage.getItem('BELIA_APPT_NOVELTY_SHOWN')) {
+            setTimeout(() => {
+                showAppointmentsNoveltyModal(todayPendingAppts);
+                sessionStorage.setItem('BELIA_APPT_NOVELTY_SHOWN', 'true');
+            }, 800);
+        }
+    }
+}
+
+function showAppointmentsNoveltyModal(appts) {
+    let rowsHtml = '';
+    appts.forEach(appt => {
+        const timeStr = new Date(appt.appointment_date).toLocaleTimeString('es-AR', {
+            hour: '2-digit', minute: '2-digit'
+        });
+        
+        let garmentDetail = "Interés General";
+        if (appt.inventory_id) {
+            const inv = inventory.find(i => i.id === appt.inventory_id);
+            if (inv) {
+                const prod = products.find(p => p.id === inv.product_id);
+                if (prod) garmentDetail = `${prod.name} (${inv.color} / Talle ${inv.size})`;
+            }
+        }
+        
+        rowsHtml += `
+            <div style="padding:14px; border-radius:var(--radius-sm); border:1px solid var(--color-border); background-color:var(--color-bg-darker); margin-bottom:10px; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:var(--color-gold-light); font-size:1.05rem;">${timeStr} hs</strong>
+                    <span class="appt-badge appt-badge-pending">Pendiente</span>
+                </div>
+                <div style="font-size:0.95rem; font-weight:700; color:var(--color-text-primary);">${appt.client_name}</div>
+                <div style="font-size:0.8rem; color:var(--color-text-secondary);"><i class="fas fa-phone" style="margin-right:6px; color:var(--color-gold-light);"></i>${appt.phone || 'Sin celular'}</div>
+                <div style="font-size:0.8rem; color:var(--color-text-secondary);"><i class="fas fa-shirt" style="margin-right:6px; color:var(--color-gold-light);"></i>${garmentDetail}</div>
+                ${appt.notes ? `<div style="font-size:0.75rem; color:var(--color-text-muted); font-style:italic; border-left:2px solid var(--color-gold); padding-left:8px; margin-top:2px;">${appt.notes}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    const bodyHtml = `
+        <div style="font-family:var(--font-sans); color:var(--color-text-primary);">
+            <p style="font-size:0.88rem; color:var(--color-text-secondary); margin-bottom:14px;">Tienes las siguientes visitas programadas al showroom para el día de hoy:</p>
+            <div style="max-height:300px; overflow-y:auto; padding-right:4px;">
+                ${rowsHtml}
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                <button class="btn btn-primary" onclick="closeModal()">Entendido</button>
+            </div>
+        </div>
+    `;
+    
+    openModal("Citas del Showroom de Hoy", bodyHtml);
+}
+
 
