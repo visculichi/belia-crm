@@ -3680,6 +3680,7 @@ function initSettingsNotificationsForm() {
         // Remover listeners anteriores para evitar duplicados
         const newForm = settingsForm.cloneNode(true);
         settingsForm.parentNode.replaceChild(newForm, settingsForm);
+        
         newForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const emailVal = document.getElementById('settings-notification-email').value.trim();
@@ -3692,6 +3693,54 @@ function initSettingsNotificationsForm() {
             
             showToast('Ajustes Guardados', 'Las preferencias de notificación se guardaron correctamente.', 'success');
         });
+
+        // Evento de prueba del bot de Telegram
+        const testBtn = newForm.querySelector('#settings-telegram-test-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', async () => {
+                const token = document.getElementById('settings-telegram-token').value.trim();
+                const chatId = document.getElementById('settings-telegram-chatid').value.trim();
+                
+                if (!token || !chatId) {
+                    showToast('Campos Vacíos', 'Introduce el Token del Bot y el Chat ID para realizar la prueba.', 'warning');
+                    return;
+                }
+                
+                testBtn.disabled = true;
+                testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Probando...';
+                
+                const testMsg = `🔔 *Mensaje de Prueba de BELIA CRM* 🔔\n\n` +
+                                `¡Felicidades! Tu bot de Telegram se ha conectado correctamente con el sistema BELIA CRM.\n\n` +
+                                `⚡ _Las notificaciones automáticas de citas del showroom ya están activas._`;
+                                
+                try {
+                    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: testMsg,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                    
+                    if (res.ok) {
+                        showToast('Prueba Exitosa', 'El mensaje de prueba se envió correctamente a Telegram.', 'success');
+                    } else {
+                        const errData = await res.json();
+                        showToast('Falla en la Prueba', `Telegram devolvió un error: ${errData.description || 'Desconocido'}`, 'danger');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error de Conexión', 'No se pudo conectar con los servidores de Telegram.', 'danger');
+                } finally {
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right:6px;"></i> Probar Bot';
+                }
+            });
+        }
     }
 }
 
