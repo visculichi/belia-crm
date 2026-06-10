@@ -3762,6 +3762,48 @@ function initSettingsNotificationsForm() {
                 }
             });
         }
+
+        // Evento de activación de correo en FormSubmit
+        const activateBtn = newForm.querySelector('#settings-email-activate-btn');
+        if (activateBtn) {
+            activateBtn.addEventListener('click', () => {
+                const emailVal = document.getElementById('settings-notification-email').value.trim();
+                if (!emailVal) {
+                    showToast('Campo Vacío', 'Por favor ingresa un correo para activarlo.', 'warning');
+                    return;
+                }
+                
+                // Crear un formulario temporal
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = `https://formsubmit.co/${emailVal}`;
+                tempForm.target = '_blank';
+                
+                const honeyInput = document.createElement('input');
+                honeyInput.type = 'hidden';
+                honeyInput.name = '_honey';
+                honeyInput.value = '';
+                tempForm.appendChild(honeyInput);
+                
+                const subjectInput = document.createElement('input');
+                subjectInput.type = 'hidden';
+                subjectInput.name = '_subject';
+                subjectInput.value = 'Activación de Notificaciones BELIA CRM';
+                tempForm.appendChild(subjectInput);
+
+                const messageInput = document.createElement('input');
+                messageInput.type = 'hidden';
+                messageInput.name = 'Mensaje';
+                messageInput.value = 'Esta es una solicitud de activación para recibir notificaciones desde esta aplicación BELIA CRM. Haz clic en activar para autorizar los envíos desde este dominio.';
+                tempForm.appendChild(messageInput);
+                
+                document.body.appendChild(tempForm);
+                tempForm.submit();
+                document.body.removeChild(tempForm);
+                
+                showToast('Activación Iniciada', 'Se abrió la pestaña de FormSubmit. Revisa tu correo y haz clic en "Activate" para autorizar este dominio.', 'info');
+            });
+        }
     }
 }
 
