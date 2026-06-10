@@ -1008,17 +1008,33 @@
                         </form>
                     </div>
 
-                    <!-- Configuración de Notificaciones (Email) -->
+                    <!-- Configuración de Notificaciones (Email & Telegram) -->
                     <div class="card" style="display:flex; flex-direction:column; gap:20px;">
                         <h3 style="font-family:var(--font-display); font-size:1.3rem;">Notificaciones de Citas</h3>
-                        <form id="settings-email-form" style="display:flex; flex-direction:column; gap:16px;">
-                            <div class="form-group">
+                        <form id="settings-notifications-form" style="display:flex; flex-direction:column; gap:16px;">
+                            <div class="form-group" style="border-bottom: 1px solid var(--color-border); padding-bottom: 16px;">
                                 <label class="form-label">Correo para Citas Showroom (FormSubmit)</label>
                                 <input type="email" id="settings-notification-email" class="form-input" placeholder="correo@ejemplo.com">
                                 <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">Las citas agendadas enviarán una alerta por email a esta dirección a través de FormSubmit.co.</p>
                             </div>
+                            
+                            <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-gold-light); margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fab fa-telegram" style="font-size: 1.15rem;"></i> Notificaciones de Telegram
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Token del Bot de Telegram</label>
+                                <input type="password" id="settings-telegram-token" class="form-input" placeholder="Ej: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Chat ID de Telegram</label>
+                                <input type="text" id="settings-telegram-chatid" class="form-input" placeholder="Ej: 987654321 o -100123456789">
+                                <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">Identificador del chat (persona o grupo) a notificar. Obtén tu Chat ID enviando un mensaje al bot @userinfobot en Telegram.</p>
+                            </div>
+
                             <div style="display:flex; justify-content:flex-end; gap:12px;">
-                                <button type="submit" class="btn btn-primary">Guardar Correo</button>
+                                <button type="submit" class="btn btn-primary">Guardar Ajustes</button>
                             </div>
                         </form>
                     </div>

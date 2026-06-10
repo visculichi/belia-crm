@@ -155,7 +155,7 @@ async function loadAndRefreshViews(page = 'dashboard') {
             initCalculatorModule();
         } else if (page === 'settings') {
             renderSettingsPanel();
-            initSettingsEmailForm();
+            initSettingsNotificationsForm();
         } else if (page === 'shifts') {
             await renderShiftsView();
         } else if (page === 'labels') {
@@ -3660,21 +3660,37 @@ function getHolidayTypeDescription(type) {
 }
 
 
-function initSettingsEmailForm() {
+function initSettingsNotificationsForm() {
     const emailInput = document.getElementById('settings-notification-email');
-    const emailForm = document.getElementById('settings-email-form');
+    const telegramTokenInput = document.getElementById('settings-telegram-token');
+    const telegramChatIdInput = document.getElementById('settings-telegram-chatid');
+    const settingsForm = document.getElementById('settings-notifications-form');
+    
     if (emailInput) {
         emailInput.value = localStorage.getItem('BELIA_NOTIFICATION_EMAIL') || '';
     }
-    if (emailForm) {
+    if (telegramTokenInput) {
+        telegramTokenInput.value = localStorage.getItem('BELIA_TELEGRAM_BOT_TOKEN') || '';
+    }
+    if (telegramChatIdInput) {
+        telegramChatIdInput.value = localStorage.getItem('BELIA_TELEGRAM_CHAT_ID') || '';
+    }
+    
+    if (settingsForm) {
         // Remover listeners anteriores para evitar duplicados
-        const newForm = emailForm.cloneNode(true);
-        emailForm.parentNode.replaceChild(newForm, emailForm);
+        const newForm = settingsForm.cloneNode(true);
+        settingsForm.parentNode.replaceChild(newForm, settingsForm);
         newForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const val = document.getElementById('settings-notification-email').value.trim();
-            localStorage.setItem('BELIA_NOTIFICATION_EMAIL', val);
-            showToast('Configuración Guardada', 'El correo de notificaciones se guardó correctamente.', 'success');
+            const emailVal = document.getElementById('settings-notification-email').value.trim();
+            const tokenVal = document.getElementById('settings-telegram-token').value.trim();
+            const chatIdVal = document.getElementById('settings-telegram-chatid').value.trim();
+            
+            localStorage.setItem('BELIA_NOTIFICATION_EMAIL', emailVal);
+            localStorage.setItem('BELIA_TELEGRAM_BOT_TOKEN', tokenVal);
+            localStorage.setItem('BELIA_TELEGRAM_CHAT_ID', chatIdVal);
+            
+            showToast('Ajustes Guardados', 'Las preferencias de notificación se guardaron correctamente.', 'success');
         });
     }
 }
@@ -4284,6 +4300,20 @@ function openAppointmentModal() {
                         showToast('Email Enviado', `Notificación enviada a ${emailDest}.`, 'success');
                     } else {
                         showToast('Alerta de Email', 'No se pudo despachar el email. Activa el correo si es primera vez.', 'warning');
+                    }
+                });
+            }
+            
+            // Enviar Telegram si el Bot está configurado
+            const tgToken = localStorage.getItem('BELIA_TELEGRAM_BOT_TOKEN');
+            const tgChatId = localStorage.getItem('BELIA_TELEGRAM_CHAT_ID');
+            if (tgToken && tgToken.trim() !== '' && tgChatId && tgChatId.trim() !== '') {
+                showToast('Enviando Telegram', 'Enviando notificación al bot de Telegram...', 'info');
+                sendTelegramNotification(savedAppt).then(ok => {
+                    if (ok) {
+                        showToast('Telegram Enviado', 'Notificación enviada con éxito.', 'success');
+                    } else {
+                        showToast('Error Telegram', 'No se pudo enviar el mensaje de Telegram. Revisa el token/ID.', 'warning');
                     }
                 });
             }
