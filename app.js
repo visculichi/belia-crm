@@ -171,7 +171,7 @@ async function loadAndRefreshViews(page = 'dashboard') {
         } else if (page === 'appointments') {
             initAppointmentsModule();
         } else if (page === 'photos') {
-            await renderPhotosView();
+            await renderPhotosView(true);
         } else if (page === 'calculator') {
             initCalculatorModule();
         } else if (page === 'settings') {
@@ -1994,73 +1994,96 @@ _Copia este mensaje para tu facilidad y rellenalo con tus datos. ¡Muchas gracia
 // ==========================================================================
 // MÓDULO: GESTIÓN DE BASE DE FOTOS AUTOADMINISTRABLE
 // ==========================================================================
-async function renderPhotosView() {
+let currentPhotosList = [];
+
+async function renderPhotosView(forceFetch = false) {
     const tableBody = document.getElementById('photos-table-body');
     if (!tableBody) return;
 
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="5" style="text-align:center; padding:40px; color:var(--color-text-muted);">
-                <i class="fas fa-spinner fa-spin" style="font-size:2rem; margin-bottom:12px; color:var(--color-gold);"></i>
-                <div>Cargando base de fotos...</div>
-            </td>
-        </tr>
-    `;
+    const searchInput = document.getElementById('photos-search-input');
+    const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-    try {
-        const photosList = await getCustomPhotos();
-        tableBody.innerHTML = '';
+    if (forceFetch || currentPhotosList.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; padding:40px; color:var(--color-text-muted);">
+                    <i class="fas fa-spinner fa-spin" style="font-size:2rem; margin-bottom:12px; color:var(--color-gold);"></i>
+                    <div>Cargando base de fotos...</div>
+                </td>
+            </tr>
+        `;
 
-        if (photosList.length === 0) {
+        try {
+            currentPhotosList = await getCustomPhotos();
+        } catch (e) {
+            console.error("Error al renderizar biblioteca de fotos:", e);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align:center; padding:40px; color:var(--color-text-muted);">
-                        <i class="fas fa-images" style="font-size:2.5rem; margin-bottom:12px;"></i>
-                        <h4 style="font-family:var(--font-display); font-size:1.15rem; color:var(--color-text-primary)">No hay fotos vinculadas</h4>
-                        <p style="font-size:0.8rem; margin-top:4px;">Carga imágenes personalizadas para que se auto-vinculen por talle y color.</p>
+                    <td colspan="5" style="text-align:center; padding:40px; color:var(--color-danger);">
+                        <i class="fas fa-exclamation-circle" style="font-size:2rem; margin-bottom:12px;"></i>
+                        <div>Error al cargar la base de fotos.</div>
                     </td>
                 </tr>
             `;
             return;
         }
+    }
 
-        photosList.forEach(photo => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="text-align:center; padding:12px;">
-                    <img src="${photo.image_url}" style="width:60px; height:60px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--color-border-gold);" onerror="this.src='LOGO.jpeg'">
-                </td>
-                <td style="font-weight:600; color:var(--color-text-primary);">${photo.title}</td>
-                <td>
-                    <span class="badge" style="background-color:rgba(212,175,55,0.08); border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.75rem; padding:4px 8px; border-radius:var(--radius-sm);">${photo.color}</span>
-                </td>
-                <td style="font-size:0.8rem; font-family:monospace; color:var(--color-text-secondary); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    <a href="${photo.image_url}" target="_blank" style="color:var(--color-gold-light); text-decoration:underline;">${photo.image_url}</a>
-                </td>
-                <td style="text-align:center;">
-                    <div style="display:flex; justify-content:center; gap:8px;">
-                        <button class="btn btn-secondary btn-edit-photo" data-id="${photo.id}" style="padding:8px 12px;"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger btn-delete-photo" data-id="${photo.id}" style="padding:8px 12px;"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-                </td>
-            `;
+    tableBody.innerHTML = '';
 
-            tr.querySelector('.btn-edit-photo').addEventListener('click', () => openPhotoFormModal(photo.id));
-            tr.querySelector('.btn-delete-photo').addEventListener('click', () => confirmDeletePhoto(photo.id, photo.title, photo.color));
+    const filteredList = currentPhotosList.filter(photo => {
+        const titleMatch = (photo.title || '').toLowerCase().includes(searchVal);
+        const colorMatch = (photo.color || '').toLowerCase().includes(searchVal);
+        const urlMatch = (photo.image_url || '').toLowerCase().includes(searchVal);
+        return titleMatch || colorMatch || urlMatch;
+    });
 
-            tableBody.appendChild(tr);
-        });
-    } catch (e) {
-        console.error("Error al renderizar biblioteca de fotos:", e);
+    if (filteredList.length === 0) {
+        const message = currentPhotosList.length === 0 
+            ? "Carga imágenes personalizadas para que se auto-vinculen por talle y color."
+            : "No se encontraron fotos que coincidan con la búsqueda.";
+        const title = currentPhotosList.length === 0
+            ? "No hay fotos vinculadas"
+            : "Sin resultados";
+            
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align:center; padding:40px; color:var(--color-danger);">
-                    <i class="fas fa-exclamation-circle" style="font-size:2rem; margin-bottom:12px;"></i>
-                    <div>Error al cargar la base de fotos.</div>
+                <td colspan="5" style="text-align:center; padding:40px; color:var(--color-text-muted);">
+                    <i class="fas fa-images" style="font-size:2.5rem; margin-bottom:12px;"></i>
+                    <h4 style="font-family:var(--font-display); font-size:1.15rem; color:var(--color-text-primary)">${title}</h4>
+                    <p style="font-size:0.8rem; margin-top:4px;">${message}</p>
                 </td>
             </tr>
         `;
+        return;
     }
+
+    filteredList.forEach(photo => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align:center; padding:12px;">
+                <img src="${photo.image_url}" style="width:60px; height:60px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--color-border-gold);" onerror="this.src='LOGO.jpeg'">
+            </td>
+            <td style="font-weight:600; color:var(--color-text-primary);">${photo.title}</td>
+            <td>
+                <span class="badge" style="background-color:rgba(212,175,55,0.08); border:1px solid var(--color-border-gold); color:var(--color-gold-light); font-size:0.75rem; padding:4px 8px; border-radius:var(--radius-sm);">${photo.color}</span>
+            </td>
+            <td style="font-size:0.8rem; font-family:monospace; color:var(--color-text-secondary); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <a href="${photo.image_url}" target="_blank" style="color:var(--color-gold-light); text-decoration:underline;">${photo.image_url}</a>
+            </td>
+            <td style="text-align:center;">
+                <div style="display:flex; justify-content:center; gap:8px;">
+                    <button class="btn btn-secondary btn-edit-photo" data-id="${photo.id}" style="padding:8px 12px;"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-delete-photo" data-id="${photo.id}" style="padding:8px 12px;"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </td>
+        `;
+
+        tr.querySelector('.btn-edit-photo').addEventListener('click', () => openPhotoFormModal(photo.id));
+        tr.querySelector('.btn-delete-photo').addEventListener('click', () => confirmDeletePhoto(photo.id, photo.title, photo.color));
+
+        tableBody.appendChild(tr);
+    });
 }
 
 function openPhotoFormModal(photoId = null) {
@@ -2336,7 +2359,7 @@ function openPhotoFormModal(photoId = null) {
 
             showToast('Fotos Guardadas', `Se actualizaron los enlaces de fotos para "${titleVal}" exitosamente.`, 'success');
             closeModal();
-            renderPhotosView();
+            renderPhotosView(true);
         } catch (err) {
             console.error("Error al guardar fotos personalizadas:", err);
             showToast('Error de Base de Datos', 'No se pudieron aplicar las modificaciones en la base de datos.', 'danger');
@@ -2367,7 +2390,7 @@ function confirmDeletePhoto(photoId, title, color) {
             await deleteCustomPhoto(photoId);
             showToast('Vínculo Removido', `La foto para "${title}" en color "${color}" fue desvinculada del catálogo.`, 'success');
             closeModal();
-            renderPhotosView();
+            renderPhotosView(true);
         } catch (err) {
             console.error(err);
             showToast('Error', 'No se pudo eliminar la foto de la biblioteca.', 'danger');
@@ -2379,6 +2402,13 @@ function initPhotosModule() {
     const btnAdd = document.getElementById('photos-btn-add');
     if (btnAdd) {
         btnAdd.addEventListener('click', () => openPhotoFormModal());
+    }
+    
+    const searchInput = document.getElementById('photos-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderPhotosView(false);
+        });
     }
 }
 
