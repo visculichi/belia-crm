@@ -3167,6 +3167,7 @@ async function saveAppointment(appt) {
                 const { data, error } = await supabaseClient
                     .from('showroom_appointments')
                     .update({
+                        customer_id: appt.customer_id || null,
                         client_name: appt.client_name,
                         phone: appt.phone,
                         appointment_date: appt.appointment_date,
@@ -3183,6 +3184,7 @@ async function saveAppointment(appt) {
                 const { data, error } = await supabaseClient
                     .from('showroom_appointments')
                     .insert([{
+                        customer_id: appt.customer_id || null,
                         client_name: appt.client_name,
                         phone: appt.phone,
                         appointment_date: appt.appointment_date,
@@ -3207,6 +3209,7 @@ async function saveAppointment(appt) {
         if (idx !== -1) {
             appts[idx] = {
                 ...appts[idx],
+                customer_id: appt.customer_id || null,
                 client_name: appt.client_name,
                 phone: appt.phone,
                 appointment_date: appt.appointment_date,
@@ -3220,6 +3223,7 @@ async function saveAppointment(appt) {
     } else {
         const newAppt = {
             id: generateId(),
+            customer_id: appt.customer_id || null,
             client_name: appt.client_name,
             phone: appt.phone,
             appointment_date: appt.appointment_date,
@@ -3435,6 +3439,7 @@ CREATE TABLE IF NOT EXISTS belia_users (
 -- 5.3 Tabla de Citas de Showroom
 CREATE TABLE IF NOT EXISTS showroom_appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
     client_name TEXT NOT NULL,
     phone TEXT,
     appointment_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -3443,6 +3448,10 @@ CREATE TABLE IF NOT EXISTS showroom_appointments (
     status TEXT DEFAULT 'pending' NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Asegurar que exista customer_id en la tabla showroom_appointments existente
+ALTER TABLE showroom_appointments ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+
 
 -- 6. Habilitar lecturas públicas o configurar políticas RLS básicas
 -- Para facilitar el desarrollo rápido, habilitar acceso sin credenciales restrictivas:

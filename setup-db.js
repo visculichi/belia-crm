@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS belia_users (
 -- 5.3 Tabla de Citas de Showroom
 CREATE TABLE IF NOT EXISTS showroom_appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
     client_name TEXT NOT NULL,
     phone TEXT,
     appointment_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -116,6 +117,10 @@ CREATE TABLE IF NOT EXISTS showroom_appointments (
     status TEXT DEFAULT 'pending' NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Asegurar que exista customer_id en la tabla showroom_appointments existente
+ALTER TABLE showroom_appointments ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+
 
 -- 6. Habilitar lecturas públicas o configurar políticas RLS básicas
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;

@@ -3885,12 +3885,18 @@ function renderAppointmentsForSelectedDay() {
                     btnSale.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
                     
                     // 1. Obtener o guardar cliente en el CRM
-                    let customer = customers.find(c => {
-                        const cleanP = (c.phone || '').replace(/[^0-9]/g, '');
-                        const cleanApptP = (appt.phone || '').replace(/[^0-9]/g, '');
-                        return (cleanP !== '' && cleanP === cleanApptP) || 
-                               (c.first_name.toLowerCase().trim() === appt.client_name.toLowerCase().trim());
-                    });
+                    let customer = null;
+                    if (appt.customer_id) {
+                        customer = customers.find(c => c.id === appt.customer_id);
+                    }
+                    if (!customer) {
+                        customer = customers.find(c => {
+                            const cleanP = (c.phone || '').replace(/[^0-9]/g, '');
+                            const cleanApptP = (appt.phone || '').replace(/[^0-9]/g, '');
+                            return (cleanP !== '' && cleanP === cleanApptP) || 
+                                   (c.first_name.toLowerCase().trim() === appt.client_name.toLowerCase().trim());
+                        });
+                    }
                     
                     if (!customer) {
                         // Crear nuevo cliente
@@ -3979,9 +3985,11 @@ function openAppointmentModal() {
     
     const formHtml = `
         <form id="appt-form" style="display:flex; flex-direction:column; gap:14px;">
-            <div class="form-group">
+            <div class="form-group" style="position: relative;">
                 <label class="form-label">Nombre Completo del Cliente *</label>
-                <input type="text" id="appt-form-name" class="form-input" placeholder="Ej: Carolina Herrera" required>
+                <input type="text" id="appt-form-name" class="form-input" placeholder="Ej: Carolina Herrera" required autocomplete="off">
+                <input type="hidden" id="appt-form-customer-id" value="">
+                <div id="appt-customer-search-results" style="display:none; position:absolute; left:0; right:0; top:100%; z-index:10000; background:var(--color-bg-darker); border:1px solid var(--color-border); border-radius:var(--radius-md); max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.5); margin-top:4px;"></div>
             </div>
             
             <div class="form-group">
@@ -4021,7 +4029,94 @@ function openAppointmentModal() {
     
     openModal("Agendar Nueva Cita Showroom", formHtml);
     
+    const nameInput = document.getElementById('appt-form-name');
+    const phoneInput = document.getElementById('appt-form-phone');
+    const customerIdInput = document.getElementById('appt-form-customer-id');
+    const searchResults = document.getElementById('appt-customer-search-results');
     const timeInput = document.getElementById('appt-form-time');
+
+    function renderApptCustomerSearchResults(query = '') {
+        if (!searchResults) return;
+        searchResults.innerHTML = '';
+        const cleanQuery = query.toLowerCase().trim();
+
+        if (cleanQuery.length === 0) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        const filtered = customers.filter(c => {
+            const fullName = `${c.first_name} ${c.last_name || ''}`.toLowerCase();
+            const email = (c.email || '').toLowerCase();
+            const phone = (c.phone || '').toLowerCase();
+            return fullName.includes(cleanQuery) || email.includes(cleanQuery) || phone.includes(cleanQuery);
+        });
+
+        if (filtered.length === 0) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        filtered.forEach(c => {
+            const div = document.createElement('div');
+            div.style.padding = '10px 14px';
+            div.style.cursor = 'pointer';
+            div.style.fontSize = '0.8rem';
+            div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            div.style.transition = 'background 0.2s';
+            
+            div.innerHTML = `
+                <div style="font-weight:700; color:var(--color-gold-light);">${c.first_name} ${c.last_name || ''}</div>
+                <div style="font-size:0.7rem; color:var(--color-text-secondary); margin-top:2px;">
+                    ${c.phone ? `<span style="margin-right:8px;"><i class="fas fa-phone" style="font-size:0.65rem; color:var(--color-gold-light); opacity:0.8;"></i> ${c.phone}</span>` : ''} 
+                    ${c.email ? `<span><i class="fas fa-envelope" style="font-size:0.65rem; color:var(--color-gold-light); opacity:0.8;"></i> ${c.email}</span>` : ''}
+                </div>
+            `;
+
+            div.addEventListener('click', () => {
+                nameInput.value = `${c.first_name} ${c.last_name || ''}`.trim();
+                phoneInput.value = c.phone || '';
+                customerIdInput.value = c.id;
+                searchResults.style.display = 'none';
+                showToast('Cliente Vinculado', `${c.first_name} se vinculó a la cita.`, 'success');
+            });
+
+            div.addEventListener('mouseenter', () => {
+                div.style.backgroundColor = 'rgba(212, 175, 55, 0.08)';
+            });
+            div.addEventListener('mouseleave', () => {
+                div.style.backgroundColor = 'transparent';
+            });
+
+            searchResults.appendChild(div);
+        });
+
+        searchResults.style.display = 'block';
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', (e) => {
+            customerIdInput.value = ''; // Reset ID if user modifies the name field manually
+            renderApptCustomerSearchResults(e.target.value);
+        });
+
+        nameInput.addEventListener('focus', (e) => {
+            renderApptCustomerSearchResults(e.target.value);
+        });
+
+        nameInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (searchResults) searchResults.style.display = 'none';
+            }, 250);
+        });
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener('input', () => {
+            customerIdInput.value = ''; // Reset ID if user modifies the phone field manually
+        });
+    }
+    
     if (timeInput) {
         timeInput.addEventListener('blur', () => {
             const timeVal = timeInput.value;
@@ -4047,6 +4142,7 @@ function openAppointmentModal() {
         
         const client_name = document.getElementById('appt-form-name').value.trim();
         const phone = document.getElementById('appt-form-phone').value.trim();
+        const customer_id = document.getElementById('appt-form-customer-id').value || null;
         const inventory_id = document.getElementById('appt-form-inventory').value || null;
         const dateVal = document.getElementById('appt-form-date').value;
         const timeVal = document.getElementById('appt-form-time').value;
@@ -4072,6 +4168,7 @@ function openAppointmentModal() {
         
         try {
             const apptPayload = {
+                customer_id,
                 client_name,
                 phone,
                 inventory_id,
