@@ -522,9 +522,18 @@ async function initSalesPOS(showToast, updateViews, openModalOverlay, closeModal
 
 // Cargar y sincronizar datos locales del POS
 async function reloadPOSData() {
-    posProducts = await getProducts();
-    posInventory = await getInventory();
-    posCustomers = await getCustomers();
+    const promises = [
+        getProducts(),
+        getInventory(),
+        getCustomers()
+    ];
+    if (typeof getCustomPhotos === 'function') {
+        promises.push(getCustomPhotos());
+    }
+    const [prods, inv, custs] = await Promise.all(promises);
+    posProducts = prods;
+    posInventory = inv;
+    posCustomers = custs;
 }
 
 // Renderizar Catálogo de Prendas
